@@ -1,0 +1,87 @@
+{% extends 'inventario/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="card shadow-sm border-0 mt-4">
+    <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #101820; border-bottom: 3px solid #C60C30;">
+        <h5 class="mb-0 fw-bold">📦 Entrada de Carga (Notas Fiscais)</h5>
+        
+        <!-- Botão que aciona o input de arquivo oculto -->
+        <button class="btn btn-sm text-white fw-bold shadow-sm" style="background-color: #00C853; border: none;" onclick="document.getElementById('inputArquivoXML').click()">
+            <i class="bi bi-upload"></i> IMPORTAR XML
+        </button>
+        <input type="file" id="inputArquivoXML" accept=".xml" style="display: none;" onchange="enviarXML(this)">
+    </div>
+
+    <div class="p-3 bg-light border-bottom">
+        <form method="GET" class="d-flex gap-2">
+            <input type="text" name="q" class="form-control" placeholder="Buscar por número da nota ou fornecedor...">
+            <button type="submit" class="btn px-4 text-white fw-bold shadow-sm" style="background-color: #C60C30; border: none;">Buscar</button>
+        </form>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Status</th>
+                        <th>Nº da Nota</th>
+                        <th>Série</th>
+                        <th>Data Emissão</th>
+                        <th class="text-start">Fornecedor</th>
+                        <th class="text-end">Valor Total</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="listaNotas">
+                    <tr>
+                        <td><span class="badge bg-danger">Pendente</span></td>
+                        <td class="fw-bold text-secondary">185550</td>
+                        <td>2</td>
+                        <td>17/09/2026</td>
+                        <td class="text-start">GAMA DISTRIBUIDORA DE TINTAS LTDA</td>
+                        <td class="text-end fw-bold" style="color: #101820;">R$ 2.090,69</td>
+                        <td class="text-center">
+                            <a href="#" class="btn btn-sm text-white fw-bold shadow-sm" style="background-color: #C60C30;" title="Iniciar Conferência">
+                                <i class="bi bi-list-check"></i> Conferir
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg-warning text-dark">Em Conferência</span></td>
+                        <td class="fw-bold text-secondary">185480</td>
+                        <td>1</td>
+                        <td>15/09/2026</td>
+                        <td class="text-start">SUVINIL BASFS S.A</td>
+                        <td class="text-end fw-bold" style="color: #101820;">R$ 4.320,00</td>
+                        <td class="text-center">
+                            <a href="#" class="btn btn-sm text-dark fw-bold shadow-sm" style="background-color: #FFB81C;" title="Continuar Conferência">
+                                <i class="bi bi-play-fill"></i> Retomar
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg-success">Finalizada</span></td>
+                        <td class="fw-bold text-secondary">185412</td>
+                        <td>1</td>
+                        <td>10/09/2026</td>
+                        <td class="text-start">CORAL AKZONOBEL LTDA</td>
+                        <td class="text-end fw-bold" style="color: #101820;">R$ 5.430,00</td>
+                        <td class="text-center">
+                            <a href="#" class="btn btn-sm btn-secondary fw-bold shadow-sm" title="Visualizar Nota">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const csrfTokenConfig = '{{ csrf_token }}';
+</script>
+<script src="{% static 'admin/js/entrada_carga.js' %}"></script>
+{% endblock %}

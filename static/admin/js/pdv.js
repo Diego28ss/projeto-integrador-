@@ -1,0 +1,263 @@
+let carrinho = [];
+let tagsBusca = [];
+let pointsToRedeem = 0;
+let descontoGlobalAplicado = false;
+
+function tratarInputBusca(event, input) {
+    let texto = input.value.trim();
+    if (event.key === "Enter" && texto !== "") {
+        tagsBusca.push(texto.toUpperCase());
+        input.value = "";
+        renderizarTags();
+        buscarProduto("");
+    } else {
+        buscarProduto(texto);
+    }
+}
+
+function renderizarTags() {
+    let html = '';
+    tagsBusca.forEach((tag, index) => {
+        html += `<span class="badge text-white me-2 mb-2 p-2 fs-6 shadow-sm d-flex align-items-center" style="background-color: #888B8D;">
+                    ${tag}
+                    <i class="bi bi-x-circle ms-2" style="cursor: pointer;" onclick="removerTag(${index})"></i>
+                 </span>`;
+    });
+    document.getElementById('areaTags').innerHTML = html;
+}
+
+function removerTag(index) {
+    tagsBusca.splice(index, 1);
+    renderizarTags();
+    buscarProduto(document.getElementById('inputBusca').value.trim());
+}
+
+function buscarProduto(textoDigitado) {
+    let termosParaBuscar = [...tagsBusca];
+    if (textoDigitado.length > 0) termosParaBuscar.push(textoDigitado);
+    let queryFinal = termosParaBuscar.join(" ");
+
+    if (queryFinal.length < 2) {
+        document.getElementById('resultadosBusca').style.display = 'none';
+        return;
+    }
+
+    fetch(`/api/buscar-produtos/?q=${encodeURIComponent(queryFinal)}`)
+        .then(res => res.json())
+        .then(data => {
+            let html = '';
+            if (data.produtos.length === 0) {
+                html = '<div class="list-group-item text-muted text-center py-3">Nenhum produto encontrado.</div>';
+            } else {
+                data.produtos.forEach((p) => {
+                    let nomeSeguro = p.nome.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+                    html += `<button type="button"
+                                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                data-id="${p.id}" data-nome="${nomeSeguro}" data-preco="${p.preco_venda}"
+                                onclick="adicionarDiretoDoBotao(this)">
+                                <span class="text-start"><strong>${p.nome}</strong><br><small class="text-muted">Estoque: ${p.estoque_atual}</small></span>
+                                <strong style="color: #00C853;" class="fs-5">R$ ${p.preco_venda.toFixed(2).replace('.', ',')}</strong>
+                             </button>`;
+                });
+            }
+            document.getElementById('resultadosBusca').innerHTML = html;
+            document.getElementById('resultadosBusca').style.display = 'block';
+        });
+}
+
+function adicionarDiretoDoBotao(botao) {
+    let id = parseInt(botao.getAttribute('data-id'));
+    let nome = botao.getAttribute('data-nome');
+    let preco = parseFloat(botao.getAttribute('data-preco'));
+
+    let item = carrinho.find(i => i.id === id);
+    if (item) {
+        item.qtd++;
+    } else {
+        carrinho.push({ id: id, nome: nome, preco: preco, preco_desconto: preco, qtd: 1 });
+    }
+
+    document.getElementById('resultadosBusca').style.display = 'none';
+    document.getElementById('inputBusca').value = '';
+    descontoGlobalAplicado = false;
+    atualizarTela();
+    document.getElementById('inputBusca').focus();
+}
+
+function atualizarTela() {
+    let html = '';
+    let totalComDescontosItens = 0;
+
+    carrinho.forEach((item, index) => {
+        if (item.preco_desconto === undefined) item.preco_desconto = item.preco;
+        let totalLinha = item.preco_desconto * item.qtd;
+        totalComDescontosItens += totalLinha;
+
+        html += `<tr>
+            <td class="text-start fw-bold text-secondary">${item.nome}</td>
+            <td><input type="number" class="form-control form-control-sm text-center fw-bold" value="${item.qtd}" min="1" onchange="mudarQtd(${index}, this.value)"></td>
+            <td class="text-muted align-middle">R$ ${item.preco.toFixed(2).replace('.', ',')}</td>
+            <td><input type="number" class="form-control form-control-sm text-center fw-bold" style="color: #00C853;" value="${item.preco_desconto.toFixed(2)}" step="0.01" min="0" onchange="mudarPrecoDesconto(${index}, this.value)"></td>
+            <td class="text-dark fw-bold align-middle">R$ ${totalLinha.toFixed(2).replace('.', ',')}</td>
+            <td><button type="button" class="btn btn-sm btn-link text-danger fs-5 p-0" onclick="removerItem(${index})"><i class="bi bi-trash-fill"></i></button></td>
+        </tr>`;
+    });
+
+    document.getElementById('tabelaCarrinho').innerHTML = html;
+
+    if (!descontoGlobalAplicado) {
+        document.getElementById('inputValorFinal').value = totalComDescontosItens.toFixed(2);
+        document.getElementById('inputDescontoPerc').value = '';
+    }
+    atualizarResumoCaixa();
+}
+
+function mudarQtd(index, valor) {
+    carrinho[index].qtd = parseInt(valor) || 1;
+    descontoGlobalAplicado = false;
+    atualizarTela();
+}
+
+function mudarPrecoDesconto(index, valor) {
+    carrinho[index].preco_desconto = parseFloat(valor) || carrinho[index].preco;
+    descontoGlobalAplicado = false;
+    atualizarTela();
+}
+
+function removerItem(index) {
+    carrinho.splice(index, 1);
+    descontoGlobalAplicado = false;
+    atualizarTela();
+}
+
+function aplicarDescontoGlobalPorPorcentagem() {
+    let perc = parseFloat(document.getElementById('inputDescontoPerc').value) || 0;
+    let totalItens = carrinho.reduce((s, i) => s + (i.preco_desconto * i.qtd), 0);
+    let novoValorFinal = totalItens - (totalItens * (perc / 100));
+
+    document.getElementById('inputValorFinal').value = novoValorFinal.toFixed(2);
+    descontoGlobalAplicado = true;
+    atualizarResumoCaixa();
+}
+
+function aplicarDescontoGlobalPorValor() {
+    let valorFinalInput = parseFloat(document.getElementById('inputValorFinal').value) || 0;
+    let totalItens = carrinho.reduce((s, i) => s + (i.preco_desconto * i.qtd), 0);
+
+    if (totalItens > 0) {
+        let perc = ((totalItens - valorFinalInput) / totalItens) * 100;
+        document.getElementById('inputDescontoPerc').value = perc.toFixed(2);
+    } else {
+        document.getElementById('inputDescontoPerc').value = '';
+    }
+    descontoGlobalAplicado = true;
+    atualizarResumoCaixa();
+}
+
+function atualizarResumoCaixa() {
+    let subtotalOriginal = carrinho.reduce((s, i) => s + (i.preco * i.qtd), 0);
+    let valorFinal = parseFloat(document.getElementById('inputValorFinal').value) || 0;
+    let economiaTotal = subtotalOriginal - valorFinal;
+
+    document.getElementById('txtSubtotal').innerText = `R$ ${subtotalOriginal.toFixed(2).replace('.', ',')}`;
+    document.getElementById('txtDesconto').innerText = `- R$ ${economiaTotal > 0 ? economiaTotal.toFixed(2).replace('.', ',') : '0,00'}`;
+    document.getElementById('txtTotalCompra').innerText = `R$ ${valorFinal.toFixed(2).replace('.', ',')}`;
+}
+
+function limparCarrinho() {
+    if (confirm("Deseja realmente limpar toda a operação?")) {
+        carrinho = [];
+        tagsBusca = [];
+        pointsToRedeem = 0;
+        descontoGlobalAplicado = false;
+        renderizarTags();
+        document.getElementById('inputBusca').value = '';
+        document.getElementById('resultadosBusca').style.display = 'none';
+        document.getElementById('selectCliente').value = '';
+        document.getElementById('areaResgatePontos').style.display = 'none';
+        atualizarTela();
+    }
+}
+
+function verificarPontos() {
+    let clienteNome = document.getElementById('selectCliente').value;
+    let areaResgate = document.getElementById('areaResgatePontos');
+    pointsToRedeem = 0;
+    areaResgate.style.display = 'none';
+
+    if (clienteNome) {
+        fetch(`/api/consultar-pontos/?cliente=${encodeURIComponent(clienteNome)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.pontos_utilizaveis > 0) {
+                    areaResgate.innerHTML = `
+                        <div class="alert p-2 mb-0 shadow-sm text-center text-dark" style="background-color: #FFB81C; border: none;">
+                            <strong class="d-block mb-1">🎁 Saldo: ${data.pontos_totais} pontos</strong>
+                            <span class="small d-block mb-2">Vale <b>R$ ${data.valor_reais.toFixed(2).replace('.', ',')}</b> de desconto!</span>
+                            <button type="button" class="btn btn-sm text-white fw-bold w-100" style="background-color: #101820;" onclick="aplicarDescontoPontos(${data.pontos_utilizaveis}, ${data.valor_reais})">
+                                💰 RESGATAR AGORA
+                            </button>
+                        </div>
+                    `;
+                    areaResgate.style.display = 'block';
+                }
+            });
+    }
+}
+
+function aplicarDescontoPontos(pontos, valorDesconto) {
+    let totalComDescontosItens = carrinho.reduce((s, i) => s + (i.preco_desconto * i.qtd), 0);
+    if (totalComDescontosItens <= 0) return alert("Adicione produtos no carrinho antes de aplicar o desconto!");
+
+    if (valorDesconto > totalComDescontosItens) valorDesconto = totalComDescontosItens;
+
+    pointsToRedeem = pontos;
+    let inputFinal = document.getElementById('inputValorFinal');
+    inputFinal.value = (totalComDescontosItens - valorDesconto).toFixed(2);
+    aplicarDescontoGlobalPorValor();
+
+    let areaResgate = document.getElementById('areaResgatePontos');
+    areaResgate.innerHTML = `
+        <div class="alert p-2 mb-0 shadow-sm text-center text-white" style="background-color: #00C853; border: none;">
+            <strong>✅ R$ ${valorDesconto.toFixed(2).replace('.', ',')} Aplicados!</strong><br>
+            <small>(${pontos} pontos serão debitados na finalização)</small>
+        </div>
+    `;
+}
+
+function finalizarOperacao(statusSelecionado) {
+    if (carrinho.length === 0) return alert("O carrinho está vazio!");
+
+    let subtotalComDescontosItens = carrinho.reduce((s, i) => s + (i.preco_desconto * i.qtd), 0);
+    let valorFinal = parseFloat(document.getElementById('inputValorFinal').value) || 0;
+    let descontoGlobalAdicional = subtotalComDescontosItens - valorFinal;
+
+    let pacote = {
+        cliente: document.getElementById('selectCliente').value,
+        indicante: document.getElementById('selectIndicante').value,
+        vendedor: document.getElementById('selectVendedor').value,
+        status: statusSelecionado,
+        valor_final: valorFinal,
+        desconto: descontoGlobalAdicional > 0 ? descontoGlobalAdicional : 0,
+        pontos_resgatados: pointsToRedeem,
+        carrinho: carrinho
+    };
+
+    fetch('/api/salvar-venda/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfTokenConfig },
+        body: JSON.stringify(pacote)
+    }).then(res => res.json()).then(data => {
+        if (data.status === 'sucesso') {
+            if (statusSelecionado === 'ORCAMENTO') {
+                alert('📝 Orçamento gerado com sucesso! Nenhum estoque ou ponto foi alterado.');
+            } else {
+                alert('✅ Venda finalizada com sucesso! O estoque foi deduzido e a pontuação atualizada.');
+            }
+            window.open(`/venda/cupom/${data.venda_id}/`, '_blank', 'width=1024,height=850,scrollbars=yes,resizable=yes');
+            location.reload();
+        } else {
+            alert("Erro ao salvar a operação: " + data.mensagem);
+        }
+    });
+}

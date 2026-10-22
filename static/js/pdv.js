@@ -3,15 +3,76 @@ let tagsBusca = [];
 let pointsToRedeem = 0;
 let descontoGlobalAplicado = false;
 
+document.addEventListener("DOMContentLoaded", function() {
+    const inputBusca = document.getElementById('inputBusca');
+    if (inputBusca) inputBusca.focus();
+});
+
+function adicionarItemAoCarrinho(produto) {
+    let item = carrinho.find(i => i.id === produto.id);
+    if (item) {
+        item.qtd++;
+    } else {
+        carrinho.push({
+            id: produto.id,
+            nome: produto.nome,
+            preco: parseFloat(produto.preco_venda),
+            preco_desconto: parseFloat(produto.preco_venda),
+            qtd: 1
+        });
+    }
+    descontoGlobalAplicado = false;
+    atualizarTela();
+}
+
 function tratarInputBusca(event, input) {
     let texto = input.value.trim();
-    if (event.key === "Enter" && texto !== "") {
-        tagsBusca.push(texto.toUpperCase());
-        input.value = "";
-        renderizarTags();
-        buscarProduto("");
+
+    if (event.key === "Enter") {
+        event.preventDefault();
+        if (!texto && tagsBusca.length === 0) return;
+
+        let query = texto;
+        if (tagsBusca.length > 0) {
+            query = tagsBusca.join(" ") + (texto ? " " + texto : "");
+        }
+
+        fetch(`/api/buscar-produtos/?q=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => {
+                const produtos = data.produtos || [];
+
+                let produtoExato = produtos.find(p => p.cod_barras && p.cod_barras.trim() === texto);
+                if (produtoExato) {
+                    adicionarItemAoCarrinho(produtoExato);
+                    input.value = "";
+                    tagsBusca = [];
+                    renderizarTags();
+                    document.getElementById('resultadosBusca').style.display = 'none';
+                    return;
+                }
+
+                if (produtos.length === 1) {
+                    adicionarItemAoCarrinho(produtos[0]);
+                    input.value = "";
+                    tagsBusca = [];
+                    renderizarTags();
+                    document.getElementById('resultadosBusca').style.display = 'none';
+                    return;
+                }
+
+                if (texto !== "") {
+                    tagsBusca.push(texto.toUpperCase());
+                    input.value = "";
+                    renderizarTags();
+                    buscarProduto("");
+                }
+            })
+            .catch(err => console.error("Erro na busca de produtos:", err));
     } else {
-        buscarProduto(texto);
+        setTimeout(() => {
+            buscarProduto(input.value.trim());
+        }, 100);
     }
 }
 
@@ -46,7 +107,7 @@ function buscarProduto(textoDigitado) {
         .then(res => res.json())
         .then(data => {
             let html = '';
-            if (data.produtos.length === 0) {
+            if(data.produtos.length === 0) {
                 html = '<div class="list-group-item text-muted text-center py-3">Nenhum produto encontrado.</div>';
             } else {
                 data.produtos.forEach((p) => {
@@ -55,7 +116,7 @@ function buscarProduto(textoDigitado) {
                                 class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                 data-id="${p.id}" data-nome="${nomeSeguro}" data-preco="${p.preco_venda}"
                                 onclick="adicionarDiretoDoBotao(this)">
-                                <span class="text-start"><strong>${p.nome}</strong><br><small class="text-muted">Estoque: ${p.estoque_atual}</small></span>
+                                <span class="text-start"><strong>${p.nome}</strong><br><small class="text-muted">Estoque: ${p.estoque_atual} | Cód: ${p.cod_barras || 'S/N'}</small></span>
                                 <strong style="color: #00C853;" class="fs-5">R$ ${p.preco_venda.toFixed(2).replace('.', ',')}</strong>
                              </button>`;
                 });
@@ -70,17 +131,12 @@ function adicionarDiretoDoBotao(botao) {
     let nome = botao.getAttribute('data-nome');
     let preco = parseFloat(botao.getAttribute('data-preco'));
 
-    let item = carrinho.find(i => i.id === id);
-    if (item) {
-        item.qtd++;
-    } else {
-        carrinho.push({ id: id, nome: nome, preco: preco, preco_desconto: preco, qtd: 1 });
-    }
+    adicionarItemAoCarrinho({ id: id, nome: nome, preco_venda: preco });
 
     document.getElementById('resultadosBusca').style.display = 'none';
     document.getElementById('inputBusca').value = '';
-    descontoGlobalAplicado = false;
-    atualizarTela();
+    tagsBusca = [];
+    renderizarTags();
     document.getElementById('inputBusca').focus();
 }
 
@@ -154,6 +210,18 @@ function aplicarDescontoGlobalPorValor() {
     atualizarResumoCaixa();
 }
 
+function calcularTroco() {
+    let total = parseFloat(document.getElementById('inputValorFinal').value) || 0;
+    let recebido = parseFloat(document.getElementById('inputValorRecebido').value) || 0;
+    let troco = recebido - total;
+
+    if (recebido > 0 && troco >= 0) {
+        document.getElementById('inputTroco').value = `R$ ${troco.toFixed(2).replace('.', ',')}`;
+    } else {
+        document.getElementById('inputTroco').value = 'R$ 0,00';
+    }
+}
+
 function atualizarResumoCaixa() {
     let subtotalOriginal = carrinho.reduce((s, i) => s + (i.preco * i.qtd), 0);
     let valorFinal = parseFloat(document.getElementById('inputValorFinal').value) || 0;
@@ -162,10 +230,12 @@ function atualizarResumoCaixa() {
     document.getElementById('txtSubtotal').innerText = `R$ ${subtotalOriginal.toFixed(2).replace('.', ',')}`;
     document.getElementById('txtDesconto').innerText = `- R$ ${economiaTotal > 0 ? economiaTotal.toFixed(2).replace('.', ',') : '0,00'}`;
     document.getElementById('txtTotalCompra').innerText = `R$ ${valorFinal.toFixed(2).replace('.', ',')}`;
+
+    calcularTroco();
 }
 
 function limparCarrinho() {
-    if (confirm("Deseja realmente limpar toda a operação?")) {
+    if(confirm("Deseja realmente limpar toda a operação?")) {
         carrinho = [];
         tagsBusca = [];
         pointsToRedeem = 0;
@@ -175,6 +245,8 @@ function limparCarrinho() {
         document.getElementById('resultadosBusca').style.display = 'none';
         document.getElementById('selectCliente').value = '';
         document.getElementById('areaResgatePontos').style.display = 'none';
+        document.getElementById('inputValorRecebido').value = '';
+        document.getElementById('inputTroco').value = 'R$ 0,00';
         atualizarTela();
     }
 }
@@ -212,8 +284,10 @@ function aplicarDescontoPontos(pontos, valorDesconto) {
     if (valorDesconto > totalComDescontosItens) valorDesconto = totalComDescontosItens;
 
     pointsToRedeem = pontos;
+
     let inputFinal = document.getElementById('inputValorFinal');
     inputFinal.value = (totalComDescontosItens - valorDesconto).toFixed(2);
+
     aplicarDescontoGlobalPorValor();
 
     let areaResgate = document.getElementById('areaResgatePontos');
@@ -245,15 +319,16 @@ function finalizarOperacao(statusSelecionado) {
 
     fetch('/api/salvar-venda/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfTokenConfig },
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfTokenConfig},
         body: JSON.stringify(pacote)
     }).then(res => res.json()).then(data => {
         if (data.status === 'sucesso') {
-            if (statusSelecionado === 'ORCAMENTO') {
+            if(statusSelecionado === 'ORCAMENTO') {
                 alert('📝 Orçamento gerado com sucesso! Nenhum estoque ou ponto foi alterado.');
             } else {
                 alert('✅ Venda finalizada com sucesso! O estoque foi deduzido e a pontuação atualizada.');
             }
+
             window.open(`/venda/cupom/${data.venda_id}/`, '_blank', 'width=1024,height=850,scrollbars=yes,resizable=yes');
             location.reload();
         } else {

@@ -1,0 +1,232 @@
+{% extends 'inventario/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* Apenas a limitação de altura e rolagem da tabela, sem colunas congeladas */
+    .table-scrollable { max-height: 60vh; overflow-y: auto; overflow-x: auto; }
+    
+    /* Barra superior não ser sobreposta pela rolagem da tabela */
+    .top-bar-fixed { position: sticky; top: 0; z-index: 1020; background-color: #ffffff; }
+    
+    /* Esconder na impressão */
+    @media print { .no-print { display: none !important; } }
+</style>
+
+<!-- Barra de Ações Global (Sticky Top) -->
+<div class="top-bar-fixed p-3 mb-3 border-bottom shadow-sm d-flex justify-content-between align-items-center rounded no-print">
+    <div>
+        <h4 class="mb-0 fw-bold" style="color: #101820;">📦 Conferência de Nota Fiscal</h4>
+        <small class="text-muted">Chave: <span id="lblChaveHeader" class="fw-bold">{{ chave }}</span></small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'tela_entrada_carga' %}" class="btn fw-bold" style="background-color: #e9ecef; color: #101820;">⬅️ Voltar</a>
+        <button type="button" class="btn fw-bold shadow-sm" style="background-color: #FFB81C; color: #101820;" onclick="salvarRascunho()">💾 Salvar Progresso</button>
+        <button type="button" class="btn text-white fw-bold shadow-sm" style="background-color: #00C853; border: none;" onclick="finalizarEntrada()">✅ Finalizar Entrada</button>
+    </div>
+</div>
+
+<!-- Acordeões de Informação (Sanfonas) -->
+<div class="accordion mb-4 shadow-sm no-print" id="accordionNFe">
+    <!-- Cabeçalho e Fornecedor -->
+    <div class="accordion-item border-0 border-bottom">
+        <h2 class="accordion-header" id="headingFornecedor">
+            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFornecedor">
+                🏢 Cabeçalho, Fornecedor e Destinatário
+            </button>
+        </h2>
+        <div id="collapseFornecedor" class="accordion-collapse collapse" data-bs-parent="#accordionNFe">
+            <div class="accordion-body bg-light row g-3 text-secondary" style="font-size: 0.9rem;">
+                <!-- Cabeçalho -->
+                <div class="col-md-2"><strong>Tipo Nota:</strong> <br><span id="nfe_tipo">Entrada</span></div>
+                <div class="col-md-2"><strong>Situação:</strong> <br><span id="nfe_situacao">Validada</span></div>
+                <div class="col-md-2"><strong>Nº da Nota / Série:</strong> <br><span id="lblNumeroSerie">---</span></div>
+                <div class="col-md-3"><strong>Data Emissão:</strong> <br><span id="lblDataEmissao">---</span></div>
+                <div class="col-md-3"><strong>Modelo:</strong> <br><span id="nfe_modelo">55 - NF-e</span></div>
+                <div class="col-md-4"><strong>Regime Tributário:</strong> <br><span id="nfe_regime">---</span></div>
+                <div class="col-md-4"><strong>Nat. Operação:</strong> <br><span id="nfe_natureza">---</span></div>
+                <div class="col-md-4"><strong>Movimento Estoque:</strong> <br><span id="nfe_movimento">Entrada de Compra</span></div>
+                
+                <hr class="w-100 my-2 opacity-25">
+                
+                <!-- Fornecedor -->
+                <div class="col-md-6"><strong class="text-dark">FORNECEDOR</strong><br><span id="lblFornecedor">---</span></div>
+                <div class="col-md-3"><strong>CNPJ:</strong> <br><span id="lblCnpjFornecedor">---</span></div>
+                <div class="col-md-3"><strong>IE:</strong> <br><span id="lblIeFornecedor">---</span></div>
+                <div class="col-md-9"><strong>Endereço:</strong> <br><span id="lblEndFornecedor">---</span></div>
+                <div class="col-md-3"><strong>Telefone:</strong> <br><span id="lblTelFornecedor">---</span></div>
+                
+                <hr class="w-100 my-2 opacity-25">
+                
+                <!-- Destinatário (JB Tintas) -->
+                <div class="col-md-6"><strong class="text-dark">DESTINATÁRIO</strong><br><span id="lblDestinatario">---</span></div>
+                <div class="col-md-3"><strong>CNPJ:</strong> <br><span id="lblCnpjDestinatario">---</span></div>
+                <div class="col-md-3"><strong>IE:</strong> <br><span id="lblIeDestinatario">---</span></div>
+                <div class="col-md-9"><strong>Endereço:</strong> <br><span id="lblEndDestinatario">---</span></div>
+                <div class="col-md-3"><strong>E-mail:</strong> <br><span id="lblEmailDestinatario">---</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Totais e Impostos -->
+    <div class="accordion-item border-0 border-bottom">
+        <h2 class="accordion-header" id="headingTotais">
+            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTotais">
+                💰 Totais e Impostos
+            </button>
+        </h2>
+        <div id="collapseTotais" class="accordion-collapse collapse" data-bs-parent="#accordionNFe">
+            <div class="accordion-body bg-light row g-3 text-secondary text-center" style="font-size: 0.9rem;">
+                <div class="col-md-2 border-end"><strong>Total Produtos</strong><br><span id="lblTotProd" class="fs-6 fw-bold text-dark">R$ 0,00</span></div>
+                <div class="col-md-2 border-end"><strong>BC ICMS</strong><br><span id="tot_bc_icms">R$ 0,00</span></div>
+                <div class="col-md-2 border-end"><strong>Total ICMS</strong><br><span id="tot_icms">R$ 0,00</span></div>
+                <div class="col-md-2 border-end"><strong>BC ICMS ST</strong><br><span id="tot_bc_icms_st">R$ 0,00</span></div>
+                <div class="col-md-2 border-end"><strong>Total ICMS ST</strong><br><span id="tot_icms_st">R$ 0,00</span></div>
+                <div class="col-md-2"><strong>Total IPI</strong><br><span id="tot_ipi">R$ 0,00</span></div>
+                
+                <div class="col-md-2 border-end border-top pt-2"><strong>Total Frete</strong><br><span id="lblTotFrete">R$ 0,00</span></div>
+                <div class="col-md-2 border-end border-top pt-2"><strong>Seguro</strong><br><span id="tot_seguro">R$ 0,00</span></div>
+                <div class="col-md-2 border-end border-top pt-2"><strong>Desconto</strong><br><span id="lblTotDesc" class="text-danger">R$ 0,00</span></div>
+                <div class="col-md-2 border-end border-top pt-2"><strong>PIS</strong><br><span id="tot_pis">R$ 0,00</span></div>
+                <div class="col-md-2 border-end border-top pt-2"><strong>COFINS</strong><br><span id="tot_cofins">R$ 0,00</span></div>
+                <div class="col-md-2 border-top pt-2"><strong>Valor Total da NF</strong><br><span id="lblTotNF" class="fs-5 fw-bold text-success">R$ 0,00</span></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Transportes e Volumes -->
+    <div class="accordion-item border-0">
+        <h2 class="accordion-header" id="headingTransporte">
+            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTransporte">
+                🚚 Transportes e Volumes
+            </button>
+        </h2>
+        <div id="collapseTransporte" class="accordion-collapse collapse" data-bs-parent="#accordionNFe">
+            <div class="accordion-body bg-light row g-3 text-secondary" style="font-size: 0.9rem;">
+                <div class="col-md-4"><strong>Modalidade do Frete:</strong> <br><span id="transp_modFrete">---</span></div>
+                <div class="col-md-4"><strong>Transportadora:</strong> <br><span id="transp_nome">---</span></div>
+                <div class="col-md-4"><strong>CNPJ / IE:</strong> <br><span id="transp_cnpj">---</span> / <span id="transp_ie">---</span></div>
+                <div class="col-md-6"><strong>Endereço:</strong> <br><span id="transp_end">---</span></div>
+                <div class="col-md-6"><strong>Placa / UF / RNTC:</strong> <br><span id="transp_placa">---</span> / <span id="transp_uf">---</span> / <span id="transp_rntc">---</span></div>
+                
+                <hr class="w-100 my-2 opacity-25">
+                
+                <div class="col-md-2 text-center border-end"><strong>Qtde Vol:</strong> <br><span id="vol_qVol" class="fw-bold text-dark">0</span></div>
+                <div class="col-md-3 text-center border-end"><strong>Espécie / Marca:</strong> <br><span id="vol_esp">---</span> / <span id="vol_marca">---</span></div>
+                <div class="col-md-3 text-center border-end"><strong>Peso Líquido:</strong> <br><span id="vol_pesoL">0.000</span></div>
+                <div class="col-md-4 text-center"><strong>Peso Bruto:</strong> <br><span id="vol_pesoB">0.000</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Barra de Ferramentas dos Produtos -->
+<div class="d-flex justify-content-between align-items-center mb-2 no-print">
+    <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-secondary fw-bold"><i class="bi bi-unlock-fill"></i> Liberar Divergências</button>
+        <button class="btn btn-sm btn-outline-secondary fw-bold"><i class="bi bi-arrow-repeat"></i> Trocar CFOP Lote</button>
+    </div>
+    <div class="d-flex gap-2 align-items-center" style="width: 400px;">
+        <i class="bi bi-upc-scan fs-4 text-muted"></i>
+        <input type="text" id="bipadorConferencia" class="form-control form-control-sm border-primary fw-bold" placeholder="Conferência por Scanner (Bipe)..." autofocus>
+    </div>
+</div>
+
+<!-- Super Tabela -->
+<div class="card shadow-sm border-0">
+    <div class="table-scrollable">
+        <table class="table table-hover table-bordered align-middle mb-0 text-nowrap" style="font-size: 0.85rem;">
+            <thead class="table-dark" style="background-color: #101820; border-color: #101820;">
+                <tr>
+                    <th class="text-center" style="width: 50px;">Item</th>
+                    <th style="width: 130px;">Cód. Fornec.</th>
+                    <th class="text-center" style="width: 80px;">Vínculo</th>
+                    <th>Cód. Interno</th>
+                    <th>Descrição Interna</th>
+                    <th class="text-center">Fator</th>
+                    <th class="text-center">Qtd. Interna</th>
+                    <th class="text-center">Status</th>
+                    <th>Descrição do Fornecedor</th>
+                    <th class="text-center">CFOP</th>
+                    <th class="text-center">CFOP Ent.</th>
+                    <th class="text-center">Qtd. XML</th>
+                    <th class="text-center">UN</th>
+                    <th class="text-end">Vlr. Unitário</th>
+                    <th class="text-end">Vlr. Total</th>
+                    <th class="text-center">CSOSN/CST</th>
+                    <th class="text-end">BC ICMS</th>
+                    <th class="text-end">Vlr. ICMS</th>
+                    <th class="text-end">Vlr. IPI</th>
+                    <th class="text-center">% ICMS</th>
+                </tr>
+            </thead>
+            <tbody id="listaProdutosXML">
+                <tr><td colspan="20" class="text-center py-4 text-muted">Carregando dados do XML da memória...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modais de Sobreposição (Vínculo e Novo Produto) -->
+<div class="modal fade no-print" id="modalVincular" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold">🔍 Vincular Produto Interno</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <label class="form-label small text-muted fw-bold">Buscar no Estoque da JB Tintas</label>
+                <div class="input-group mb-3">
+                    <input type="text" id="inputBuscaVinculo" class="form-control" placeholder="Digite nome ou código...">
+                    <button class="btn text-white fw-bold" style="background-color: #C60C30;">Buscar</button>
+                </div>
+                <div class="list-group" id="resultadoBuscaVinculo" style="max-height: 200px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade no-print" id="modalNovoProdutoXML" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header text-white" style="background-color: #101820; border-bottom: 3px solid #C60C30;">
+                <h5 class="modal-title fw-bold">📦 Cadastrar Produto (Via XML)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body row g-3 p-4">
+                <div class="col-md-8">
+                    <label class="form-label fw-bold small text-muted">Nome do Produto</label>
+                    <input type="text" id="novo_nome_xml" class="form-control fw-bold" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold small text-muted">Código de Barras</label>
+                    <input type="text" id="novo_cod_xml" class="form-control bg-light" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold small text-muted">Custo NF-e (R$)</label>
+                    <input type="text" id="novo_custo_xml" class="form-control bg-light text-danger fw-bold" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold small text-muted">Margem de Lucro (%)</label>
+                    <input type="number" id="novo_margem_xml" class="form-control" placeholder="Ex: 35">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold" style="color: #00C853;">Preço de Venda (R$)</label>
+                    <input type="text" id="novo_venda_xml" class="form-control bg-light fs-5 fw-bold" style="color: #00C853;" readonly>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn text-white fw-bold px-4" style="background-color: #00C853;">💾 SALVAR E VINCULAR</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const nfeChaveParam = '{{ chave }}';
+    const csrfTokenConfig = '{{ csrf_token }}';
+</script>
+<script src="{% static 'js/conferencia_xml.js' %}"></script>
+{% endblock %}

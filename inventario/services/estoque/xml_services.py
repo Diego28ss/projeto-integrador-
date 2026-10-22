@@ -1,5 +1,6 @@
 import xmltodict
 from django.db import transaction
+# Em breve importaremos o modelo EntradaXML aqui para gravar na base de dados
 
 @transaction.atomic
 def processar_upload_xml(arquivo_xml):
@@ -18,16 +19,22 @@ def processar_upload_xml(arquivo_xml):
         except KeyError:
             raise ValueError("O arquivo enviado não é um XML de NF-e válido ou autorizado.")
 
-        # Extração do Cabeçalho e Fornecedor
+        # 1. Extração do Cabeçalho e Fornecedor
         chave_acesso = infNFe['@Id'].replace('NFe', '')
         numero_nota = infNFe['ide']['nNF']
         serie_nota = infNFe['ide']['serie']
-        data_emissao = infNFe['ide']['dhEmi'][:10] # Formato 'AAAA-MM-DD'
+        data_emissao = infNFe['ide']['dhEmi'][:10] # Fica com a data 'AAAA-MM-DD'
         
         fornecedor_nome = infNFe['emit']['xNome']
         fornecedor_cnpj = infNFe['emit']['CNPJ']
         
         valor_total = float(infNFe['total']['ICMSTot']['vNF'])
+
+        # TODO: Passo futuro -> Gravar na base de dados
+        # if EntradaXML.objects.filter(chave_acesso=chave_acesso).exists():
+        #     raise ValueError(f"A Nota Fiscal {numero_nota} já foi importada anteriormente!")
+        
+        # return EntradaXML.objects.create(...)
 
         return {
             "chave": chave_acesso,
@@ -38,3 +45,4 @@ def processar_upload_xml(arquivo_xml):
         
     except Exception as e:
         raise ValueError(f"Falha ao ler os dados do XML: {str(e)}")
+    

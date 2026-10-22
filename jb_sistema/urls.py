@@ -7,6 +7,7 @@ from inventario.views.vendas import pdv_views, relatorios_views
 from inventario.views.estoque import estoque_views
 from inventario.views.clientes import cliente_views
 from inventario.views.configuracoes import config_views
+from inventario.views.estoque import estoque_views, xml_views
 
 urlpatterns = [
     # Admin do Django
@@ -33,6 +34,8 @@ urlpatterns = [
     path('api/produto-por-codigo/', estoque_views.api_produto_por_codigo, name='api_produto_por_codigo'),
     path('api/efetivar-entrada/', estoque_views.api_efetivar_entrada, name='api_efetivar_entrada'),
     path('api/upload-xml/', estoque_views.api_upload_xml, name='api_upload_xml'),
+    path('entrada-carga/conferencia/<str:chave>/', xml_views.tela_conferencia_xml, name='tela_conferencia_xml'),
+    
 
     # 👥 Clientes
     path('clientes/', cliente_views.tela_consultar_clientes, name='tela_consultar_clientes'),

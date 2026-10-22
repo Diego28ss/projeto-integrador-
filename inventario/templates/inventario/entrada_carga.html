@@ -35,6 +35,7 @@
                     </tr>
                 </thead>
                 <tbody id="listaNotas">
+                    <!-- Exemplo visual de como as notas ficarão listadas -->
                     <tr>
                         <td><span class="badge bg-danger">Pendente</span></td>
                         <td class="fw-bold text-secondary">185550</td>
@@ -43,6 +44,7 @@
                         <td class="text-start">GAMA DISTRIBUIDORA DE TINTAS LTDA</td>
                         <td class="text-end fw-bold" style="color: #101820;">R$ 2.090,69</td>
                         <td class="text-center">
+                            <!-- O botão 'Conferir' abrirá a tela que desenhamos anteriormente -->
                             <a href="#" class="btn btn-sm text-white fw-bold shadow-sm" style="background-color: #C60C30;" title="Iniciar Conferência">
                                 <i class="bi bi-list-check"></i> Conferir
                             </a>
@@ -83,5 +85,5 @@
 <script>
     const csrfTokenConfig = '{{ csrf_token }}';
 </script>
-<script src="{% static 'admin/js/entrada_carga.js' %}"></script>
+<script src="{% static 'js/entrada_carga.js' %}"></script>
 {% endblock %}

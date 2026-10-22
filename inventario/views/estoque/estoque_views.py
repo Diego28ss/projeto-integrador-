@@ -108,12 +108,19 @@ def api_efetivar_entrada(request):
             return JsonResponse({'status': 'erro', 'mensagem': str(e)})
     return JsonResponse({'status': 'erro', 'mensagem': 'Método inválido.'})
 
+from django.http import JsonResponse
+from inventario.services.estoque import xml_services
+
 def api_upload_xml(request):
     if request.method == 'POST' and request.FILES.get('arquivo_xml'):
         try:
             arquivo = request.FILES['arquivo_xml']
+            
+            # Delega a leitura para a camada de Serviços
             dados_extraidos = xml_services.processar_upload_xml(arquivo)
+            
             return JsonResponse({'status': 'sucesso', 'dados': dados_extraidos})
+            
         except ValueError as e:
             return JsonResponse({'status': 'erro', 'mensagem': str(e)})
         except Exception as e:

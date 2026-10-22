@@ -18,7 +18,7 @@ class Familia(models.Model):
 class TributacaoCFOP(models.Model):
     codigo = models.CharField(max_length=4, unique=True)
     descricao = models.CharField(max_length=255)
-    ativo = models.BooleanField(default=False) # Inicia inativo até o usuário ligar na configuração
+    ativo = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.codigo} - {self.descricao}"
@@ -26,7 +26,7 @@ class TributacaoCFOP(models.Model):
 class TributacaoCSOSN(models.Model):
     codigo = models.CharField(max_length=4, unique=True)
     descricao = models.CharField(max_length=255)
-    ativo = models.BooleanField(default=False) # Inicia inativo até o usuário ligar
+    ativo = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.codigo} - {self.descricao}"
@@ -48,7 +48,8 @@ class Produtos(models.Model):
     familia = models.ForeignKey(Familia, on_delete=models.SET_NULL, null=True, blank=True)
 
     # ------------------ NOVOS CAMPOS FISCAIS E DE VÍNCULO ------------------
-    cod_interno = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    # 'unique=True' removido temporariamente para o SQLite aceitar a criação da coluna
+    cod_interno = models.CharField(max_length=20, blank=True, null=True)
     cod_fornecedor = models.CharField(max_length=100, blank=True, null=True)
     ncm = models.CharField(max_length=10, blank=True, null=True)
     cest = models.CharField(max_length=10, blank=True, null=True)
@@ -64,15 +65,13 @@ class Produtos(models.Model):
 
     # FAT MODEL: Geração Automática do Código Interno
     def save(self, *args, **kwargs):
-        # Descobre se é um produto novo verificando se ele já tem um "ID" no banco
         produto_novo = self.pk is None
         
         # Salva o produto para o banco de dados gerar o número do ID
         super(Produtos, self).save(*args, **kwargs)
 
-        # Se for novo e não tiver código interno, cria um baseado no ID (Ex: PRD00001)
+        # Se for novo e não tiver código interno, cria um com 6 números sequenciais (Ex: 000001)
         if produto_novo and not self.cod_interno:
-            self.cod_interno = f"PRD{self.id:05d}"
-            # Salva apenas a atualização do campo código interno para não gerar loop
+            self.cod_interno = f"{self.id:06d}"
             super(Produtos, self).save(update_fields=['cod_interno'])
             

@@ -14,8 +14,17 @@ function calcularVenda() {
 function abrirModalNovo() {
     document.getElementById('modalTitulo').innerText = "📦 Novo Produto";
     document.getElementById('formId').value = "";
+    document.getElementById('formCodInterno').value = ""; // Fica vazio para o sistema gerar
     document.getElementById('formNome').value = "";
     document.getElementById('formCodBarras').value = "";
+    
+    // Campos Fiscais
+    document.getElementById('formCodFornecedor').value = "";
+    document.getElementById('formNCM').value = "";
+    document.getElementById('formCEST').value = "";
+    document.getElementById('formCFOP').value = "";
+    document.getElementById('formCSOSN').value = "";
+
     document.getElementById('formPrecoCusto').value = "0,00";
     document.getElementById('formMargemLucro').value = "0,00";
     document.getElementById('formPrecoVenda').value = "0,00";
@@ -24,14 +33,23 @@ function abrirModalNovo() {
     document.getElementById('formStatus').value = "ATIVO";
     document.getElementById('formEstoque').value = "0";
     document.getElementById('formUnidade').value = "UN";
+    
     meuModal.show();
 }
 
 function prepararEdicao(botao) {
     document.getElementById('modalTitulo').innerText = "✏️ Editar Produto";
     document.getElementById('formId').value = botao.getAttribute('data-id');
+    document.getElementById('formCodInterno').value = botao.getAttribute('data-codinterno');
     document.getElementById('formNome').value = botao.getAttribute('data-nome');
     document.getElementById('formCodBarras').value = botao.getAttribute('data-cod');
+    
+    // Campos Fiscais
+    document.getElementById('formCodFornecedor').value = botao.getAttribute('data-codfornecedor');
+    document.getElementById('formNCM').value = botao.getAttribute('data-ncm');
+    document.getElementById('formCEST').value = botao.getAttribute('data-cest');
+    document.getElementById('formCFOP').value = botao.getAttribute('data-cfop');
+    document.getElementById('formCSOSN').value = botao.getAttribute('data-csosn');
 
     let custo = botao.getAttribute('data-custo').replace('.', ',');
     let margem = botao.getAttribute('data-margem').replace('.', ',');

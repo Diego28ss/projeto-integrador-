@@ -35,6 +35,14 @@ urlpatterns = [
     path('api/efetivar-entrada/', estoque_views.api_efetivar_entrada, name='api_efetivar_entrada'),
     path('api/upload-xml/', estoque_views.api_upload_xml, name='api_upload_xml'),
     path('entrada-carga/conferencia/<str:chave>/', xml_views.tela_conferencia_xml, name='tela_conferencia_xml'),
+    path('gerencia/fiscal/', config_views.tela_config_fiscal, name='tela_config_fiscal'),
+    path('gerencia/fiscal/cfop/salvar/', config_views.salvar_cfop, name='salvar_cfop'),
+    path('gerencia/fiscal/cfop/alternar/<int:id>/', config_views.alternar_cfop, name='alternar_cfop'),
+    path('gerencia/fiscal/cfop/excluir/<int:id>/', config_views.excluir_cfop, name='excluir_cfop'),
+    path('gerencia/fiscal/csosn/salvar/', config_views.salvar_csosn, name='salvar_csosn'),
+    path('gerencia/fiscal/csosn/alternar/<int:id>/', config_views.alternar_csosn, name='alternar_csosn'),
+    path('gerencia/fiscal/csosn/excluir/<int:id>/', config_views.excluir_csosn, name='excluir_csosn'),
+    
     
 
     # 👥 Clientes

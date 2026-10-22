@@ -1,0 +1,94 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="mb-4">
+    <h3 class="fw-bold text-secondary"><i class="bi bi-bank"></i> Configurações Fiscais</h3>
+    <p class="text-muted small">Faça a gestão dos códigos CFOP e CSOSN/CST. Apenas os itens marcados como "ATIVO" aparecerão no momento de cadastrar ou vincular um produto ao XML.</p>
+</div>
+
+<div class="row g-4">
+    <!-- Coluna CFOP -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header text-white fw-bold" style="background-color: #101820; border-bottom: 3px solid #C60C30;">
+                📄 Tabela de CFOPs
+            </div>
+            <div class="card-body bg-light">
+                <form method="POST" action="{% url 'salvar_cfop' %}" class="row g-2 mb-4">
+                    {% csrf_token %}
+                    <div class="col-4">
+                        <input type="text" name="codigo" class="form-control" placeholder="Cód (Ex: 5102)" maxlength="4" required>
+                    </div>
+                    <div class="col-8 d-flex gap-2">
+                        <input type="text" name="descricao" class="form-control" placeholder="Descrição da Operação..." required>
+                        <button type="submit" class="btn text-white fw-bold shadow-sm" style="background-color: #C60C30;">Adicionar</button>
+                    </div>
+                </form>
+
+                <div class="bg-white border rounded shadow-sm" style="max-height: 400px; overflow-y: auto;">
+                    <ul class="list-group list-group-flush">
+                        {% for cfop in cfops %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="text-dark">{{ cfop.codigo }}</strong><br>
+                                <small class="text-muted">{{ cfop.descricao }}</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="{% url 'alternar_cfop' cfop.id %}" class="btn btn-sm fw-bold {% if cfop.ativo %}btn-success{% else %}btn-outline-secondary{% endif %}" style="width: 80px;">
+                                    {% if cfop.ativo %}ATIVO{% else %}INATIVO{% endif %}
+                                </a>
+                                <a href="{% url 'excluir_cfop' cfop.id %}" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></a>
+                            </div>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted text-center py-4">Nenhum CFOP cadastrado.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coluna CSOSN/CST -->
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header text-white fw-bold" style="background-color: #101820; border-bottom: 3px solid #FFB81C;">
+                📑 Tabela de CSOSN / CST
+            </div>
+            <div class="card-body bg-light">
+                <form method="POST" action="{% url 'salvar_csosn' %}" class="row g-2 mb-4">
+                    {% csrf_token %}
+                    <div class="col-4">
+                        <input type="text" name="codigo" class="form-control" placeholder="Cód (Ex: 0102)" maxlength="4" required>
+                    </div>
+                    <div class="col-8 d-flex gap-2">
+                        <input type="text" name="descricao" class="form-control" placeholder="Descrição do Imposto..." required>
+                        <button type="submit" class="btn text-dark fw-bold shadow-sm" style="background-color: #FFB81C;">Adicionar</button>
+                    </div>
+                </form>
+
+                <div class="bg-white border rounded shadow-sm" style="max-height: 400px; overflow-y: auto;">
+                    <ul class="list-group list-group-flush">
+                        {% for csosn in csosns %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="text-dark">{{ csosn.codigo }}</strong><br>
+                                <small class="text-muted">{{ csosn.descricao }}</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="{% url 'alternar_csosn' csosn.id %}" class="btn btn-sm fw-bold {% if csosn.ativo %}btn-success{% else %}btn-outline-secondary{% endif %}" style="width: 80px;">
+                                    {% if csosn.ativo %}ATIVO{% else %}INATIVO{% endif %}
+                                </a>
+                                <a href="{% url 'excluir_csosn' csosn.id %}" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></a>
+                            </div>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted text-center py-4">Nenhum CSOSN/CST cadastrado.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

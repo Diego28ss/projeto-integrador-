@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Sum
+from inventario.models.produtos.produto_models import Familia, Marca, TributacaoCFOP, TributacaoCSOSN
 
 # Importações direcionadas para a nova estrutura de pastas (Fat Models)
 from inventario.models.produtos.produto_models import Familia, Marca
@@ -193,3 +194,58 @@ def salvar_configuracao_pontos(request):
         messages.success(request, f"Regras de pontuação para {tipo.lower()} salvas com sucesso!")
 
     return redirect('tela_manutencao_pontos')
+
+# ==========================================
+# ⚖️ CONFIGURAÇÕES FISCAIS (CFOP / CSOSN)
+# ==========================================
+def tela_config_fiscal(request):
+    if 'usuario_logado' not in request.session:
+        return redirect('login')
+
+    context = {
+        'cfops': TributacaoCFOP.objects.all().order_by('codigo'),
+        'csosns': TributacaoCSOSN.objects.all().order_by('codigo')
+    }
+    return render(request, 'inventario/config_fiscal.html', context)
+
+def salvar_cfop(request):
+    if request.method == 'POST':
+        codigo = request.POST.get('codigo', '').strip()
+        descricao = request.POST.get('descricao', '').strip()
+        if codigo and descricao:
+            TributacaoCFOP.objects.create(codigo=codigo, descricao=descricao, ativo=True)
+            messages.success(request, f"CFOP {codigo} cadastrado com sucesso!")
+    return redirect('tela_config_fiscal')
+
+def alternar_cfop(request, id):
+    cfop = get_object_or_404(TributacaoCFOP, id=id)
+    cfop.ativo = not cfop.ativo
+    cfop.save()
+    return redirect('tela_config_fiscal')
+
+def excluir_cfop(request, id):
+    cfop = get_object_or_404(TributacaoCFOP, id=id)
+    cfop.delete()
+    messages.success(request, "CFOP excluído com sucesso!")
+    return redirect('tela_config_fiscal')
+
+def salvar_csosn(request):
+    if request.method == 'POST':
+        codigo = request.POST.get('codigo', '').strip()
+        descricao = request.POST.get('descricao', '').strip()
+        if codigo and descricao:
+            TributacaoCSOSN.objects.create(codigo=codigo, descricao=descricao, ativo=True)
+            messages.success(request, f"CSOSN {codigo} cadastrado!")
+    return redirect('tela_config_fiscal')
+
+def alternar_csosn(request, id):
+    csosn = get_object_or_404(TributacaoCSOSN, id=id)
+    csosn.ativo = not csosn.ativo
+    csosn.save()
+    return redirect('tela_config_fiscal')
+
+def excluir_csosn(request, id):
+    csosn = get_object_or_404(TributacaoCSOSN, id=id)
+    csosn.delete()
+    messages.success(request, "CSOSN excluído com sucesso!")
+    return redirect('tela_config_fiscal')

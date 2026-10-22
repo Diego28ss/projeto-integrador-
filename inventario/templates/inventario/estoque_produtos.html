@@ -10,7 +10,7 @@
 
     <div class="p-3 bg-light border-bottom">
         <form method="GET" class="d-flex gap-2">
-            <input type="text" name="q" class="form-control" placeholder="Buscar por nome, marca ou código..." value="{{ query }}">
+            <input type="text" name="q" class="form-control" placeholder="Buscar por nome, marca, cód barras ou interno..." value="{{ query }}">
             <button type="submit" class="btn px-4 text-white fw-bold shadow-sm" style="background-color: #C60C30; border: none;">Buscar</button>
         </form>
     </div>
@@ -20,7 +20,9 @@
             <thead class="table-light">
                 <tr>
                     <th class="text-start">Produto</th>
-                    <th>Família</th> <th>Marca</th>
+                    <th>Cód Interno</th>
+                    <th>Família</th>
+                    <th>Marca</th>
                     <th>Status</th>
                     <th>Custo</th>
                     <th>Venda</th>
@@ -33,8 +35,9 @@
                 <tr>
                     <td class="text-start">
                         <strong style="color: #101820;">{{ p.nome }}</strong><br>
-                        <small style="color: #888B8D;">{{ p.cod_barras|default:"---" }}</small>
+                        <small style="color: #888B8D;">{{ p.cod_barras|default:"Sem Cód. Barras" }}</small>
                     </td>
+                    <td><span class="badge bg-secondary">{{ p.cod_interno|default:"---" }}</span></td>
                     <td><span class="badge" style="background-color: #adb5bd;">{{ p.familia.nome|default:"---" }}</span></td>
                     <td><span class="badge" style="background-color: #888B8D;">{{ p.marca.nome|default:"---" }}</span></td>
                     <td>
@@ -59,6 +62,12 @@
                                 data-id="{{ p.id }}"
                                 data-nome="{{ p.nome }}"
                                 data-cod="{{ p.cod_barras|default:'' }}"
+                                data-codinterno="{{ p.cod_interno|default:'' }}"
+                                data-codfornecedor="{{ p.cod_fornecedor|default:'' }}"
+                                data-ncm="{{ p.ncm|default:'' }}"
+                                data-cest="{{ p.cest|default:'' }}"
+                                data-cfop="{{ p.cfop_padrao.id|default:'' }}"
+                                data-csosn="{{ p.csosn_padrao.id|default:'' }}"
                                 data-custo="{{ p.preco_custo }}"
                                 data-margem="{{ p.margem_lucro }}"
                                 data-venda="{{ p.preco_venda }}"
@@ -73,7 +82,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" class="py-5" style="color: #888B8D;">Nenhum produto encontrado.</td></tr>
+                <tr><td colspan="9" class="py-5" style="color: #888B8D;">Nenhum produto encontrado.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -81,7 +90,7 @@
 </div>
 
 <div class="modal fade" id="modalProduto" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <form class="modal-content border-0 shadow-lg" method="POST" action="{% url 'salvar_produto' %}">
             {% csrf_token %}
             <input type="hidden" name="produto_id" id="formId">
@@ -89,67 +98,118 @@
                 <h5 class="modal-title fw-bold" id="modalTitulo">📦 Dados do Produto</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body row g-3">
-                <div class="col-md-8">
-                    <label class="form-label fw-bold small" style="color: #888B8D;">Nome do Produto</label>
-                    <input type="text" name="nome" id="formNome" class="form-control fw-bold" required>
+            
+            <div class="modal-body">
+                <!-- Seção 1: Dados Básicos -->
+                <h6 class="fw-bold border-bottom pb-2" style="color: #888B8D;">Informações Básicas</h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold small text-muted">Cód. Interno</label>
+                        <input type="text" id="formCodInterno" class="form-control bg-light text-center fw-bold text-secondary" readonly placeholder="Auto">
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label fw-bold small text-muted">Nome do Produto</label>
+                        <input type="text" name="nome" id="formNome" class="form-control fw-bold" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Código de Barras</label>
+                        <input type="text" name="cod_barras" id="formCodBarras" class="form-control">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-muted">Marca</label>
+                        <select name="marca" id="formMarca" class="form-select">
+                            <option value="">--- Selecione ---</option>
+                            {% for m in marcas %}
+                            <option value="{{ m.id }}">{{ m.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-muted">Família/Grupo</label>
+                        <select name="familia" id="formFamilia" class="form-select">
+                            <option value="">--- Selecione ---</option>
+                            {% for f in familias %}
+                            <option value="{{ f.id }}">{{ f.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-muted">Status do Produto</label>
+                        <select name="status" id="formStatus" class="form-select fw-bold">
+                            <option value="ATIVO">ATIVO (Aparece no Caixa)</option>
+                            <option value="INATIVO">INATIVO (Oculto)</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small" style="color: #888B8D;">Código de Barras</label>
-                    <input type="text" name="cod_barras" id="formCodBarras" class="form-control">
+
+                <!-- Seção 2: Dados Fiscais e Vínculo XML -->
+                <h6 class="fw-bold border-bottom pb-2 mt-4" style="color: #888B8D;">Informações Fiscais e Vínculo XML</h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Cód. Fornecedor (Via XML)</label>
+                        <input type="text" id="formCodFornecedor" class="form-control bg-light" readonly placeholder="Aguardando Vínculo XML...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold small text-muted">NCM</label>
+                        <input type="text" name="ncm" id="formNCM" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold small text-muted">CEST</label>
+                        <input type="text" name="cest" id="formCEST" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold small text-muted">CFOP Padrão</label>
+                        <select name="cfop" id="formCFOP" class="form-select">
+                            <option value="">-- CFOP --</option>
+                            {% for cfop in cfops %}
+                            <option value="{{ cfop.id }}">{{ cfop.codigo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">CSOSN/CST Padrão</label>
+                        <select name="csosn" id="formCSOSN" class="form-select">
+                            <option value="">-- CSOSN/CST --</option>
+                            {% for csosn in csosns %}
+                            <option value="{{ csosn.id }}">{{ csosn.codigo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small" style="color: #888B8D;">Marca</label>
-                    <select name="marca" id="formMarca" class="form-select">
-                        <option value="">--- Selecione ---</option>
-                        {% for m in marcas %}
-                        <option value="{{ m.id }}">{{ m.nome }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small" style="color: #888B8D;">Família/Grupo</label>
-                    <select name="familia" id="formFamilia" class="form-select">
-                        <option value="">--- Selecione ---</option>
-                        {% for f in familias %}
-                        <option value="{{ f.id }}">{{ f.nome }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small" style="color: #888B8D;">Status do Produto</label>
-                    <select name="status" id="formStatus" class="form-select fw-bold">
-                        <option value="ATIVO">ATIVO (Aparece no Caixa)</option>
-                        <option value="INATIVO">INATIVO (Oculto)</option>
-                    </select>
-                </div>
-                <div class="col-md-6 pt-2 border-top">
-                    <label class="form-label fw-bold" style="color: #101820;">Estoque Atual</label>
-                    <input type="number" name="estoque_atual" id="formEstoque" class="form-control fw-bold" required>
-                </div>
-                <div class="col-md-6 pt-2 border-top">
-                    <label class="form-label fw-bold" style="color: #101820;">Unidade de Medida</label>
-                    <select name="unidade" id="formUnidade" class="form-select fw-bold" required>
-                        <option value="UN">UN (Unidade)</option>
-                        <option value="L">L (Litro)</option>
-                        <option value="GL">GL (Galão)</option>
-                        <option value="LT">LT (Lata)</option>
-                        <option value="KG">KG (Quilo)</option>
-                    </select>
-                </div>
-                <div class="col-md-4 pt-3 border-top">
-                    <label class="form-label fw-bold" style="color: #888B8D;">Preço de Custo (R$)</label>
-                    <input type="text" name="preco_custo" id="formPrecoCusto" class="form-control" oninput="calcularVenda()">
-                </div>
-                <div class="col-md-4 pt-3 border-top">
-                    <label class="form-label fw-bold" style="color: #888B8D;">Margem de Lucro (%)</label>
-                    <input type="text" name="margem_lucro" id="formMargemLucro" class="form-control" oninput="calcularVenda()">
-                </div>
-                <div class="col-md-4 pt-3 border-top">
-                    <label class="form-label fw-bold" style="color: #00C853;">Preço de Venda (R$)</label>
-                    <input type="text" name="preco_venda" id="formPrecoVenda" class="form-control bg-light fs-5 fw-bold" style="color: #00C853;" readonly>
+
+                <!-- Seção 3: Preços e Estoque -->
+                <h6 class="fw-bold border-bottom pb-2 mt-4" style="color: #888B8D;">Estoque e Precificação</h6>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold" style="color: #101820;">Estoque Atual</label>
+                        <input type="number" name="estoque_atual" id="formEstoque" class="form-control fw-bold" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold" style="color: #101820;">Unidade de Medida</label>
+                        <select name="unidade" id="formUnidade" class="form-select fw-bold" required>
+                            <option value="UN">UN (Unidade)</option>
+                            <option value="L">L (Litro)</option>
+                            <option value="GL">GL (Galão)</option>
+                            <option value="LT">LT (Lata)</option>
+                            <option value="KG">KG (Quilo)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold text-muted">Preço Custo</label>
+                        <input type="text" name="preco_custo" id="formPrecoCusto" class="form-control" oninput="calcularVenda()">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold text-muted">Margem (%)</label>
+                        <input type="text" name="margem_lucro" id="formMargemLucro" class="form-control" oninput="calcularVenda()">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold" style="color: #00C853;">Preço Venda</label>
+                        <input type="text" name="preco_venda" id="formPrecoVenda" class="form-control bg-light fs-5 fw-bold" style="color: #00C853;" readonly>
+                    </div>
                 </div>
             </div>
+            
             <div class="modal-footer bg-light">
                 <button type="button" class="btn fw-bold" style="color: #101820; background-color: #e9ecef;" data-bs-dismiss="modal">Cancelar</button>
                 <button type="submit" class="btn text-white fw-bold px-4 shadow-sm" style="background-color: #00C853; border: none;">💾 SALVAR PRODUTO</button>

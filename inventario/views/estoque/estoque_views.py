@@ -3,7 +3,21 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Q
-from inventario.models.produtos.produto_models import Produtos, Marca, Familia, TributacaoCFOP, TributacaoCSOSN
+from django.db import transaction
+
+# Importação do seu modelo customizado de usuários
+from inventario.models import Usuarios
+
+# Importações consolidadas do módulo de produtos e auditoria
+from inventario.models.produtos.produto_models import (
+    Produtos, 
+    Marca, 
+    Familia, 
+    TributacaoCFOP, 
+    TributacaoCSOSN,
+    AuditoriaEstoque
+)
+
 from inventario.services.estoque import xml_services
 
 def tela_estoque_produtos(request):
@@ -146,3 +160,166 @@ def api_upload_xml(request):
             return JsonResponse({'status': 'erro', 'mensagem': 'Erro interno ao processar o ficheiro.'})
             
     return JsonResponse({'status': 'erro', 'mensagem': 'Nenhum arquivo recebido.'})
+
+def tela_acerto_estoque(request):
+    if 'usuario_logado' not in request.session:
+        return redirect('login')
+    return render(request, 'inventario/acerto_estoque.html')
+
+# ==========================================
+# APIs PARA O ACERTO DE ESTOQUE E AUDITORIA
+# ==========================================
+def api_buscar_produtos_acerto(request):
+    """
+    Função que procura produtos pelo nome, código interno ou código de barras
+    e devolve os dados para a tela de Acerto de Estoque.
+    """
+    query = request.GET.get('q', '').strip()
+    if not query:
+        return JsonResponse({'produtos': []})
+    
+    produtos = Produtos.objects.filter(
+        Q(nome__icontains=query) | 
+        Q(cod_interno__icontains=query) | 
+        Q(cod_barras__icontains=query)
+    ).filter(status='ATIVO')[:15]
+    
+    dados = [{
+        'id': p.id, 
+        'cod_interno': p.cod_interno or '---',
+        'cod_barras': p.cod_barras or '', # Necessário para o bipador funcionar
+        'nome': p.nome, 
+        'estoque': p.estoque_atual
+    } for p in produtos]
+    
+    return JsonResponse({'produtos': dados})
+
+# Adicione esta importação no topo do arquivo (ajuste o caminho se o modelo estiver noutro local)
+from inventario.models import Usuarios 
+import json
+from django.db import transaction
+from django.http import JsonResponse
+from inventario.models.produtos.produto_models import Produtos, AuditoriaEstoque
+
+def api_efetivar_acerto_seguro(request):
+    if request.method == 'POST':
+        try:
+            dados = json.loads(request.body)
+            produto_id = dados.get('produto_id')
+            novo_estoque = int(dados.get('novo_estoque', 0))
+            motivo = dados.get('motivo')
+            usuario_login = dados.get('usuario')
+            senha_digitada = dados.get('senha')
+
+            # 1. Validação de Segurança na sua tabela customizada (inventario_usuarios)
+            usuario_valido = Usuarios.objects.filter(login=usuario_login, senha=senha_digitada).first()
+            
+            if not usuario_valido:
+                return JsonResponse({'status': 'erro', 'mensagem': 'Credenciais inválidas. Assinatura recusada.'})
+            
+            # 2. Transação Segura
+            with transaction.atomic():
+                produto = Produtos.objects.get(id=produto_id)
+                estoque_antigo = produto.estoque_atual
+                diferenca_qtd = novo_estoque - estoque_antigo
+                
+                if diferenca_qtd == 0:
+                    return JsonResponse({'status': 'erro', 'mensagem': 'O novo estoque é igual ao atual.'})
+
+                diferenca_financeira = float(produto.preco_custo) * diferenca_qtd
+
+                produto.estoque_atual = novo_estoque
+                produto.save()
+
+                AuditoriaEstoque.objects.create(
+                    produto=produto,
+                    estoque_antigo=estoque_antigo,
+                    estoque_novo=novo_estoque,
+                    diferenca_quantidade=diferenca_qtd,
+                    diferenca_financeira=diferenca_financeira,
+                    motivo=motivo,
+                    usuario=usuario_valido.login
+                )
+                
+            return JsonResponse({'status': 'sucesso'})
+            
+        except Produtos.DoesNotExist:
+            return JsonResponse({'status': 'erro', 'mensagem': 'Produto não encontrado.'})
+        except Exception as e:
+            return JsonResponse({'status': 'erro', 'mensagem': str(e)})
+            
+    return JsonResponse({'status': 'erro', 'mensagem': 'Método inválido.'})
+
+def tela_auditoria_estoque(request):
+    """
+    Carrega o histórico completo de acertos de estoque, ordenado
+    do mais recente para o mais antigo, para visualização da gerência.
+    """
+    if 'usuario_logado' not in request.session:
+        return redirect('login')
+    
+    auditorias = AuditoriaEstoque.objects.select_related('produto').order_by('-data_alteracao')
+    
+    return render(request, 'inventario/auditoria_estoque.html', {'auditorias': auditorias})
+
+def api_cancelar_entrada_seguro(request):
+    """
+    Valida a assinatura de segurança e retira (estorna) as quantidades 
+    do estoque referentes a uma Nota Fiscal cancelada, gerando auditoria.
+    """
+    if request.method == 'POST':
+        try:
+            dados = json.loads(request.body)
+            motivo = dados.get('motivo')
+            usuario_login = dados.get('usuario')
+            senha_digitada = dados.get('senha')
+            itens = dados.get('itens', [])
+
+            # Validação de Segurança na sua tabela customizada
+            usuario_valido = Usuarios.objects.filter(login=usuario_login, senha=senha_digitada).first()
+            if not usuario_valido:
+                return JsonResponse({'status': 'erro', 'mensagem': 'Credenciais inválidas. Cancelamento recusado.'})
+            
+            with transaction.atomic():
+                for item in itens:
+                    produto_id = item.get('id')
+                    qtd_estornar = int(item.get('qtd', 0))
+                    
+                    if qtd_estornar > 0:
+                        produto = get_object_or_404(Produtos, id=produto_id)
+                        estoque_antigo = produto.estoque_atual
+                        novo_estoque = estoque_antigo - qtd_estornar
+                        
+                        # Calculo financeiro negativo para o estorno
+                        diferenca_financeira = float(produto.preco_custo) * (-qtd_estornar)
+                        
+                        produto.estoque_atual = novo_estoque
+                        produto.save()
+                        
+                        # Grava na Auditoria o estorno do estoque
+                        AuditoriaEstoque.objects.create(
+                            produto=produto,
+                            estoque_antigo=estoque_antigo,
+                            estoque_novo=novo_estoque,
+                            diferenca_quantidade=-qtd_estornar,
+                            diferenca_financeira=diferenca_financeira,
+                            motivo=f"Estorno de NF - {motivo}",
+                            usuario=usuario_valido.login
+                        )
+                        
+            return JsonResponse({'status': 'sucesso'})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'erro', 'mensagem': str(e)})
+            
+    return JsonResponse({'status': 'erro', 'mensagem': 'Método inválido.'})
+
+def tela_conferencia_scanner(request, chave):
+    """
+    Renderiza a interface isolada para contagem física de mercadorias 
+    recebidas no XML utilizando leitor de código de barras.
+    """
+    if 'usuario_logado' not in request.session:
+        return redirect('login')
+        
+    return render(request, 'inventario/conferencia_scanner.html', {'chave': chave})

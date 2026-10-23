@@ -31,7 +31,6 @@ class TributacaoCSOSN(models.Model):
     def __str__(self):
         return f"{self.codigo} - {self.descricao}"
 
-
 # ==============================================================================
 # TABELA DE PRODUTOS ATUALIZADA
 # ==============================================================================
@@ -48,7 +47,6 @@ class Produtos(models.Model):
     familia = models.ForeignKey(Familia, on_delete=models.SET_NULL, null=True, blank=True)
 
     # ------------------ NOVOS CAMPOS FISCAIS E DE VÍNCULO ------------------
-    # 'unique=True' removido temporariamente para o SQLite aceitar a criação da coluna
     cod_interno = models.CharField(max_length=20, blank=True, null=True)
     cod_fornecedor = models.CharField(max_length=100, blank=True, null=True)
     ncm = models.CharField(max_length=10, blank=True, null=True)
@@ -74,4 +72,20 @@ class Produtos(models.Model):
         if produto_novo and not self.cod_interno:
             self.cod_interno = f"{self.id:06d}"
             super(Produtos, self).save(update_fields=['cod_interno'])
-            
+
+# ==============================================================================
+# TABELA DE AUDITORIA DE ESTOQUE (FASE 1)
+# ==============================================================================
+class AuditoriaEstoque(models.Model):
+    produto = models.ForeignKey(Produtos, on_delete=models.CASCADE)
+    data_alteracao = models.DateTimeField(auto_now_add=True)
+    estoque_antigo = models.IntegerField()
+    estoque_novo = models.IntegerField()
+    diferenca_quantidade = models.IntegerField()
+    diferenca_financeira = models.DecimalField(max_digits=12, decimal_places=2)
+    motivo = models.CharField(max_length=255)
+    usuario = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.produto.nome} - {self.data_alteracao.strftime('%d/%m/%Y %H:%M')}"
+    

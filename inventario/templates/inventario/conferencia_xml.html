@@ -37,7 +37,6 @@
         </h2>
         <div id="collapseFornecedor" class="accordion-collapse collapse" data-bs-parent="#accordionNFe">
             <div class="accordion-body bg-light row g-3 text-secondary" style="font-size: 0.9rem;">
-                <!-- Cabeçalho -->
                 <div class="col-md-2"><strong>Tipo Nota:</strong> <br><span id="nfe_tipo">Entrada</span></div>
                 <div class="col-md-2"><strong>Situação:</strong> <br><span id="nfe_situacao">Validada</span></div>
                 <div class="col-md-2"><strong>Nº da Nota / Série:</strong> <br><span id="lblNumeroSerie">---</span></div>
@@ -49,7 +48,6 @@
                 
                 <hr class="w-100 my-2 opacity-25">
                 
-                <!-- Fornecedor -->
                 <div class="col-md-6"><strong class="text-dark">FORNECEDOR</strong><br><span id="lblFornecedor">---</span></div>
                 <div class="col-md-3"><strong>CNPJ:</strong> <br><span id="lblCnpjFornecedor">---</span></div>
                 <div class="col-md-3"><strong>IE:</strong> <br><span id="lblIeFornecedor">---</span></div>
@@ -58,7 +56,6 @@
                 
                 <hr class="w-100 my-2 opacity-25">
                 
-                <!-- Destinatário (JB Tintas) -->
                 <div class="col-md-6"><strong class="text-dark">DESTINATÁRIO</strong><br><span id="lblDestinatario">---</span></div>
                 <div class="col-md-3"><strong>CNPJ:</strong> <br><span id="lblCnpjDestinatario">---</span></div>
                 <div class="col-md-3"><strong>IE:</strong> <br><span id="lblIeDestinatario">---</span></div>
@@ -123,12 +120,13 @@
 <!-- Barra de Ferramentas dos Produtos -->
 <div class="d-flex justify-content-between align-items-center mb-2 no-print">
     <div class="d-flex gap-2">
-        <button class="btn btn-sm btn-outline-secondary fw-bold"><i class="bi bi-unlock-fill"></i> Liberar Divergências</button>
-        <button class="btn btn-sm btn-outline-secondary fw-bold"><i class="bi bi-arrow-repeat"></i> Trocar CFOP Lote</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" onclick="liberarDivergenciasLote()"><i class="bi bi-unlock-fill"></i> Liberar Divergências</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" onclick="abrirModalCfopLote()"><i class="bi bi-arrow-repeat"></i> Trocar CFOP Lote</button>
     </div>
-    <div class="d-flex gap-2 align-items-center" style="width: 400px;">
-        <i class="bi bi-upc-scan fs-4 text-muted"></i>
-        <input type="text" id="bipadorConferencia" class="form-control form-control-sm border-primary fw-bold" placeholder="Conferência por Scanner (Bipe)..." autofocus>
+    <div>
+        <a href="{% url 'tela_conferencia_scanner' chave %}" class="btn text-white fw-bold shadow-sm px-4" style="background-color: #101820; border: 2px solid #00C853;">
+            <i class="bi bi-upc-scan" style="color: #00C853;"></i> ABRIR MODO SCANNER
+        </a>
     </div>
 </div>
 
@@ -145,9 +143,9 @@
                     <th>Descrição Interna</th>
                     <th class="text-center">Fator</th>
                     <th class="text-center">Qtd. Interna</th>
-                    <th class="text-center">Status</th>
+                    <th class="text-center" style="width: 90px;">Status</th>
                     <th>Descrição do Fornecedor</th>
-                    <th class="text-center">CFOP</th>
+                    <th class="text-center">CFOP XML</th>
                     <th class="text-center">CFOP Ent.</th>
                     <th class="text-center">Qtd. XML</th>
                     <th class="text-center">UN</th>
@@ -167,7 +165,7 @@
     </div>
 </div>
 
-<!-- Modais de Sobreposição (Vínculo e Novo Produto) -->
+<!-- Modal Vincular -->
 <div class="modal fade no-print" id="modalVincular" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow-lg">
@@ -187,38 +185,38 @@
     </div>
 </div>
 
-<div class="modal fade no-print" id="modalNovoProdutoXML" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header text-white" style="background-color: #101820; border-bottom: 3px solid #C60C30;">
-                <h5 class="modal-title fw-bold">📦 Cadastrar Produto (Via XML)</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<!-- Modal Trocar CFOP Lote -->
+<div class="modal fade no-print" id="modalCfopLote" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white py-2">
+                <h6 class="modal-title fw-bold mb-0">Trocar CFOP (Lote)</h6>
             </div>
-            <div class="modal-body row g-3 p-4">
-                <div class="col-md-8">
-                    <label class="form-label fw-bold small text-muted">Nome do Produto</label>
-                    <input type="text" id="novo_nome_xml" class="form-control fw-bold" required>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-muted">Código de Barras</label>
-                    <input type="text" id="novo_cod_xml" class="form-control bg-light" readonly>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-muted">Custo NF-e (R$)</label>
-                    <input type="text" id="novo_custo_xml" class="form-control bg-light text-danger fw-bold" readonly>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-muted">Margem de Lucro (%)</label>
-                    <input type="number" id="novo_margem_xml" class="form-control" placeholder="Ex: 35">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold" style="color: #00C853;">Preço de Venda (R$)</label>
-                    <input type="text" id="novo_venda_xml" class="form-control bg-light fs-5 fw-bold" style="color: #00C853;" readonly>
-                </div>
+            <div class="modal-body">
+                <input type="text" id="inputCfopLote" class="form-control text-center fw-bold" placeholder="Ex: 1102">
             </div>
-            <div class="modal-footer bg-light border-0">
-                <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn text-white fw-bold px-4" style="background-color: #00C853;">💾 SALVAR E VINCULAR</button>
+            <div class="modal-footer p-1 bg-light">
+                <button type="button" class="btn btn-sm btn-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-sm btn-success fw-bold" onclick="aplicarCfopLote()">Aplicar a Todos</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Desvincular / Retornar Pendente -->
+<div class="modal fade no-print" id="modalDesvincular" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white py-2">
+                <h6 class="modal-title fw-bold mb-0">⚠️ Atenção: Desfazer Vínculo?</h6>
+            </div>
+            <div class="modal-body text-center">
+                <p class="mb-1">Ao desfazer o vínculo, este item voltará para o status <strong>Pendente</strong>.</p>
+                <p class="text-muted small mb-0">Isto liberará novamente os botões de Lupa e Novo Produto.</p>
+            </div>
+            <div class="modal-footer p-1 bg-light">
+                <button type="button" class="btn btn-sm btn-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-sm btn-danger fw-bold" onclick="confirmarDesvinculo()">Sim, Desvincular</button>
             </div>
         </div>
     </div>

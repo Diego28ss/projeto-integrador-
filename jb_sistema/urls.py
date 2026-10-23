@@ -73,6 +73,19 @@ urlpatterns = [
     # Pedidos com underline para compatibilidade de rotas antigas
     path('api/produto_por_codigo/', estoque_views.api_produto_por_codigo),
     path('api/efetivar_entrada/', estoque_views.api_efetivar_entrada),
+    path('api/xml/buscar-produtos/', xml_views.api_buscar_produtos_xml, name='api_buscar_produtos_xml'),
+    path('api/xml/vincular-produto/', xml_views.api_vincular_produto_xml, name='api_vincular_produto_xml'),
+    path('api/xml/cadastrar-produto/', xml_views.api_cadastrar_produto_xml, name='api_cadastrar_produto_xml'),
+    path('api/efetivar-entrada/', estoque_views.api_efetivar_entrada, name='api_efetivar_entrada'),
+    path('estoque/acerto/', estoque_views.tela_acerto_estoque, name='tela_acerto_estoque'),
+# APIs Acerto de Estoque
+    path('api/estoque/buscar-acerto/', estoque_views.api_buscar_produtos_acerto, name='api_buscar_produtos_acerto'),
+    path('api/estoque/efetivar-acerto-seguro/', estoque_views.api_efetivar_acerto_seguro, name='api_efetivar_acerto_seguro'),
+    path('gerencia/auditoria-estoque/', estoque_views.tela_auditoria_estoque, name='tela_auditoria_estoque'),
+    path('api/estoque/cancelar-entrada/', estoque_views.api_cancelar_entrada_seguro, name='api_cancelar_entrada_seguro'),
+    path('entrada-carga/conferencia/<str:chave>/scanner/', estoque_views.tela_conferencia_scanner, name='tela_conferencia_scanner'),
+    
+    
 
     # 👥 Gestão de Equipe e Pontos
     path('gerencia/colaboradores/', config_views.tela_colaboradores, name='tela_colaboradores'),

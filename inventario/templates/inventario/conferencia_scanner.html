@@ -1,0 +1,63 @@
+{% extends 'inventario/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* Mantém a barra de topo grudada ao rolar a página */
+    .top-bar-fixed { position: sticky; top: 0; z-index: 1020; background-color: #ffffff; }
+    
+    /* Destaque para o input do bipador */
+    .scanner-input { border-width: 3px; border-color: #00C853 !important; box-shadow: 0 0 15px rgba(0, 200, 83, 0.2); }
+    .scanner-input:focus { box-shadow: 0 0 20px rgba(0, 200, 83, 0.5); outline: none; }
+</style>
+
+<!-- Barra Superior Fixa -->
+<div class="top-bar-fixed p-3 mb-4 border-bottom shadow-sm d-flex justify-content-between align-items-center rounded">
+    <div>
+        <h4 class="mb-0 fw-bold" style="color: #101820;">
+            <i class="bi bi-upc-scan text-primary"></i> Conferência de Scanner
+        </h4>
+        <small class="text-muted fw-bold">NFE: <span class="text-dark">{{ chave|slice:"25:34" }}</span> | Chave: {{ chave }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'tela_conferencia_xml' chave %}" class="btn fw-bold shadow-sm" style="background-color: #e9ecef; color: #101820;">⬅️ Voltar</a>
+        <button type="button" class="btn text-white fw-bold shadow-sm px-4" style="background-color: #00C853;">💾 Salvar e Voltar</button>
+    </div>
+</div>
+
+<!-- Área Principal do Bipador -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body bg-light text-center py-5">
+        <label class="form-label fw-bold text-secondary fs-5 mb-3"><i class="bi bi-barcode"></i> Passe o Leitor de Código de Barras no Produto</label>
+        <div class="d-flex justify-content-center">
+            <input type="text" id="inputScannerXml" class="form-control form-control-lg text-center fw-bold fs-2 scanner-input py-3" style="max-width: 600px; color: #101820;" placeholder="Bipe aqui..." autocomplete="off" autofocus>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de Itens Bipados -->
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle text-center mb-0" style="font-size: 0.95rem;">
+            <thead class="table-dark" style="background-color: #101820; border-color: #101820;">
+                <tr>
+                    <th class="text-start py-3">Descrição do Produto (XML)</th>
+                    <th>Cód. Barras</th>
+                    <th>QTD Nota</th>
+                    <th>QTD Bipada</th>
+                    <th>Falta / Sobra</th>
+                    <th>Ação Manual</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaScannerItens">
+                <!-- Os itens do XML serão carregados aqui automaticamente pelo JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const nfeChaveParam = '{{ chave }}';
+</script>
+<script src="{% static 'js/conferencia_scanner.js' %}"></script>
+{% endblock %}

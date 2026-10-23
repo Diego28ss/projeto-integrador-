@@ -6,7 +6,6 @@
     <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #101820; border-bottom: 3px solid #C60C30;">
         <h5 class="mb-0 fw-bold">📦 Entrada de Carga (Notas Fiscais)</h5>
         
-        <!-- Botão que aciona o input de arquivo oculto -->
         <button class="btn btn-sm text-white fw-bold shadow-sm" style="background-color: #00C853; border: none;" onclick="document.getElementById('inputArquivoXML').click()">
             <i class="bi bi-upload"></i> IMPORTAR XML
         </button>
@@ -14,10 +13,10 @@
     </div>
 
     <div class="p-3 bg-light border-bottom">
-        <form method="GET" class="d-flex gap-2">
-            <input type="text" name="q" class="form-control" placeholder="Buscar por número da nota ou fornecedor...">
-            <button type="submit" class="btn px-4 text-white fw-bold shadow-sm" style="background-color: #C60C30; border: none;">Buscar</button>
-        </form>
+        <div class="d-flex gap-2">
+            <input type="text" id="inputFiltroNota" class="form-control" placeholder="Buscar por número da nota ou fornecedor..." onkeyup="filtrarNotas()">
+            <button class="btn px-4 text-white fw-bold shadow-sm" style="background-color: #C60C30; border: none;"><i class="bi bi-search"></i></button>
+        </div>
     </div>
 
     <div class="card-body p-0">
@@ -35,49 +34,51 @@
                     </tr>
                 </thead>
                 <tbody id="listaNotas">
-                    <!-- Exemplo visual de como as notas ficarão listadas -->
-                    <tr>
-                        <td><span class="badge bg-danger">Pendente</span></td>
-                        <td class="fw-bold text-secondary">185550</td>
-                        <td>2</td>
-                        <td>17/09/2026</td>
-                        <td class="text-start">GAMA DISTRIBUIDORA DE TINTAS LTDA</td>
-                        <td class="text-end fw-bold" style="color: #101820;">R$ 2.090,69</td>
-                        <td class="text-center">
-                            <!-- O botão 'Conferir' abrirá a tela que desenhamos anteriormente -->
-                            <a href="#" class="btn btn-sm text-white fw-bold shadow-sm" style="background-color: #C60C30;" title="Iniciar Conferência">
-                                <i class="bi bi-list-check"></i> Conferir
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><span class="badge bg-warning text-dark">Em Conferência</span></td>
-                        <td class="fw-bold text-secondary">185480</td>
-                        <td>1</td>
-                        <td>15/09/2026</td>
-                        <td class="text-start">SUVINIL BASFS S.A</td>
-                        <td class="text-end fw-bold" style="color: #101820;">R$ 4.320,00</td>
-                        <td class="text-center">
-                            <a href="#" class="btn btn-sm text-dark fw-bold shadow-sm" style="background-color: #FFB81C;" title="Continuar Conferência">
-                                <i class="bi bi-play-fill"></i> Retomar
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><span class="badge bg-success">Finalizada</span></td>
-                        <td class="fw-bold text-secondary">185412</td>
-                        <td>1</td>
-                        <td>10/09/2026</td>
-                        <td class="text-start">CORAL AKZONOBEL LTDA</td>
-                        <td class="text-end fw-bold" style="color: #101820;">R$ 5.430,00</td>
-                        <td class="text-center">
-                            <a href="#" class="btn btn-sm btn-secondary fw-bold shadow-sm" title="Visualizar Nota">
-                                <i class="bi bi-eye"></i> Ver
-                            </a>
-                        </td>
-                    </tr>
+                    <!-- As notas serão injetadas aqui via JavaScript -->
+                    <tr><td colspan="7" class="py-5 text-muted">Carregando notas fiscais...</td></tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Assinatura para Estorno/Cancelamento -->
+<div class="modal fade" id="modalAssinaturaCancelamento" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header text-white" style="background-color: #C60C30; border-bottom: 3px solid #101820;">
+                <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Estorno de Nota Fiscal</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <div class="alert alert-danger text-dark fw-bold small mb-4">
+                    ⚠️ Atenção: Ao cancelar esta nota, todas as quantidades que deram entrada no sistema serão subtraídas imediatamente do estoque atual.
+                </div>
+                
+                <input type="hidden" id="chaveNotaCancelamento">
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-muted">Motivo do Estorno (Obrigatório)</label>
+                    <input type="text" id="motivoCancelamento" class="form-control fw-bold border-danger" placeholder="Ex: Devolução ao fornecedor, Erro de lançamento..." required>
+                </div>
+                
+                <hr class="my-4 opacity-25">
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-muted">Usuário Autorizado</label>
+                        <input type="text" id="usuarioCancelamento" class="form-control fw-bold" placeholder="Seu login" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-muted">Senha</label>
+                        <input type="password" id="senhaCancelamento" class="form-control" placeholder="Sua senha" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-white">
+                <button type="button" class="btn fw-bold text-muted" data-bs-dismiss="modal">Abortar</button>
+                <button type="button" class="btn text-white fw-bold px-4" style="background-color: #C60C30;" id="btnConfirmarCancelamento" onclick="efetivarCancelamentoSeguro()">CONFIRMAR ESTORNO</button>
+            </div>
         </div>
     </div>
 </div>

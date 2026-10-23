@@ -281,3 +281,145 @@ function confirmarEfetivacao() {
             btn.innerText = "✅ Confirmar Entrada no Estoque";
         });
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+    carregarNotasDaMemoria();
+});
+
+function carregarNotasDaMemoria() {
+    let notasSalvas = JSON.parse(localStorage.getItem('xmls_jb_tintas')) || [];
+    let tbody = document.getElementById('listaNotas');
+    let html = '';
+    
+    if (notasSalvas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-muted">Nenhuma nota importada. Utilize o botão IMPORTAR XML acima.</td></tr>';
+        return;
+    }
+
+    // Inverte o array para as mais recentes aparecerem no topo
+    notasSalvas.reverse().forEach(nota => {
+        let parser = new DOMParser();
+        let xmlDoc = parser.parseFromString(nota.xml_puro, "text/xml");
+        
+        let numNota = "---", serie = "---", dEmi = "---", fornecedor = "---", valor = "0.00";
+        
+        try {
+            let ide = xmlDoc.getElementsByTagName("ide")[0];
+            if (ide) {
+                numNota = ide.getElementsByTagName("nNF")[0]?.textContent || "---";
+                serie = ide.getElementsByTagName("serie")[0]?.textContent || "---";
+                let d = ide.getElementsByTagName("dhEmi")[0]?.textContent;
+                if (d) dEmi = d.substring(0, 10).split('-').reverse().join('/');
+            }
+            let emit = xmlDoc.getElementsByTagName("emit")[0];
+            if (emit) fornecedor = emit.getElementsByTagName("xNome")[0]?.textContent || "---";
+            let total = xmlDoc.getElementsByTagName("total")[0];
+            if (total) valor = parseFloat(total.getElementsByTagName("vNF")[0]?.textContent).toFixed(2).replace('.', ',');
+        } catch (e) { console.error("Erro ao ler dados do XML para a listagem.", e); }
+
+        let statusBadge = '';
+        let acoes = '';
+
+        if (nota.status === 'CONCLUIDO') {
+            statusBadge = '<span class="badge bg-success">Finalizada</span>';
+            acoes = `
+                <a href="/entrada-carga/conferencia/${nota.chave}" class="btn btn-sm btn-secondary fw-bold shadow-sm" title="Visualizar Nota">
+                    <i class="bi bi-eye"></i> Ver
+                </a>
+                <button class="btn btn-sm btn-danger fw-bold shadow-sm" title="Estornar Entrada" onclick="prepararCancelamento('${nota.chave}')">
+                    <i class="bi bi-trash"></i> Cancelar
+                </button>
+            `;
+        } else {
+            statusBadge = '<span class="badge bg-danger">Pendente</span>';
+            acoes = `
+                <a href="/entrada-carga/conferencia/${nota.chave}" class="btn btn-sm text-white fw-bold shadow-sm" style="background-color: #C60C30;" title="Iniciar Conferência">
+                    <i class="bi bi-list-check"></i> Conferir
+                </a>
+            `;
+        }
+
+        html += `
+            <tr class="linha-nota">
+                <td>${statusBadge}</td>
+                <td class="fw-bold text-secondary">${numNota}</td>
+                <td>${serie}</td>
+                <td>${dEmi}</td>
+                <td class="text-start fornecedor-busca">${fornecedor}</td>
+                <td class="text-end fw-bold" style="color: #101820;">R$ ${valor}</td>
+                <td class="text-center d-flex justify-content-center gap-1">${acoes}</td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
+
+function filtrarNotas() {
+    let input = document.getElementById("inputFiltroNota").value.toUpperCase();
+    let linhas = document.querySelectorAll(".linha-nota");
+    linhas.forEach(linha => {
+        let textoLinha = linha.innerText.toUpperCase();
+        linha.style.display = textoLinha.includes(input) ? "" : "none";
+    });
+}
+
+let modalCancelamento = null;
+function prepararCancelamento(chave) {
+    document.getElementById('chaveNotaCancelamento').value = chave;
+    document.getElementById('motivoCancelamento').value = '';
+    document.getElementById('usuarioCancelamento').value = '';
+    document.getElementById('senhaCancelamento').value = '';
+    
+    if (!modalCancelamento) modalCancelamento = new bootstrap.Modal(document.getElementById('modalAssinaturaCancelamento'));
+    modalCancelamento.show();
+}
+
+function efetivarCancelamentoSeguro() {
+    let chave = document.getElementById('chaveNotaCancelamento').value;
+    let motivo = document.getElementById('motivoCancelamento').value.trim();
+    let usuario = document.getElementById('usuarioCancelamento').value.trim();
+    let senha = document.getElementById('senhaCancelamento').value;
+
+    if (!motivo || !usuario || !senha) {
+        alert("Preencha todos os campos obrigatórios (Motivo, Usuário e Senha).");
+        return;
+    }
+
+    let notasSalvas = JSON.parse(localStorage.getItem('xmls_jb_tintas')) || [];
+    let notaIndex = notasSalvas.findIndex(n => n.chave === chave);
+    
+    if (notaIndex === -1 || !notasSalvas[notaIndex].itens_processados) {
+        alert("Erro: Não foi possível recuperar a lista de produtos processados nesta nota.");
+        return;
+    }
+
+    let itensEstorno = notasSalvas[notaIndex].itens_processados;
+
+    let payload = {
+        motivo: motivo,
+        usuario: usuario,
+        senha: senha,
+        itens: itensEstorno
+    };
+
+    fetch('/api/estoque/cancelar-entrada/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfTokenConfig },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'sucesso') {
+            // Remove a nota da lista ou altera o status para cancelada
+            notasSalvas.splice(notaIndex, 1);
+            localStorage.setItem('xmls_jb_tintas', JSON.stringify(notasSalvas));
+            
+            alert("✅ Nota cancelada e estoque estornado com sucesso!");
+            modalCancelamento.hide();
+            carregarNotasDaMemoria();
+        } else {
+            alert("❌ Erro de Segurança: " + data.mensagem);
+        }
+    })
+    .catch(err => alert("Erro na comunicação com o servidor."));
+}

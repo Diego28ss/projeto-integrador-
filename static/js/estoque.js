@@ -1,7 +1,32 @@
 let meuModal;
 
 document.addEventListener("DOMContentLoaded", function () {
-    meuModal = new bootstrap.Modal(document.getElementById('modalProduto'));
+    const modalElement = document.getElementById('modalProduto');
+    meuModal = new bootstrap.Modal(modalElement);
+    
+    // Intercetação de URL: Verifica se a tela foi aberta pelo botão "+" do XML
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'novo_via_xml') {
+        
+        // Timeout de 300ms garante que o HTML e o Bootstrap carregaram completamente
+        setTimeout(() => {
+            abrirModalNovo(); // Limpa e abre o modal
+            
+            // Injeta os dados capturados da URL nos campos
+            document.getElementById('formNome').value = urlParams.get('nome') || '';
+            document.getElementById('formCodBarras').value = urlParams.get('ean') || '';
+            
+            let custoXml = parseFloat(urlParams.get('custo')) || 0;
+            document.getElementById('formPrecoCusto').value = custoXml.toFixed(2).replace('.', ',');
+            
+            document.getElementById('formNCM').value = urlParams.get('ncm') || '';
+            document.getElementById('formCEST').value = urlParams.get('cest') || '';
+            document.getElementById('formCodFornecedor').value = urlParams.get('cod_forn') || '';
+            
+            // Limpa a URL silenciosamente para evitar reabertura no F5
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }, 300);
+    }
 });
 
 function calcularVenda() {
@@ -14,7 +39,7 @@ function calcularVenda() {
 function abrirModalNovo() {
     document.getElementById('modalTitulo').innerText = "📦 Novo Produto";
     document.getElementById('formId').value = "";
-    document.getElementById('formCodInterno').value = ""; // Fica vazio para o sistema gerar
+    document.getElementById('formCodInterno').value = "";
     document.getElementById('formNome').value = "";
     document.getElementById('formCodBarras').value = "";
     

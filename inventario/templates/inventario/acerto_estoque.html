@@ -1,0 +1,150 @@
+{% extends 'inventario/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-secondary"><i class="bi bi-scales"></i> Acerto de Estoque</h3>
+        <p class="text-muted small mb-0">Ajuste o inventário fisicamente por bipe contínuo ou lançamento manual.</p>
+    </div>
+    <a href="{% url 'tela_estoque_produtos' %}" class="btn fw-bold shadow-sm" style="background-color: #e9ecef; color: #101820;">⬅️ Voltar ao Estoque</a>
+</div>
+
+<div class="row g-4">
+    <!-- Módulo 1: Acerto por Scanner (Bipe) -->
+    <div class="col-md-7">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header text-white fw-bold" style="background-color: #101820; border-bottom: 3px solid #00C853;">
+                <i class="bi bi-upc-scan"></i> Modo Scanner (Bipe Contínuo)
+            </div>
+            <div class="card-body bg-light text-center py-5">
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-muted" id="labelBipador">Pesquise e selecione um produto ao lado para liberar o scanner</label>
+                    <!-- Campo inicialmente bloqueado (disabled) -->
+                    <input type="text" id="inputBipadorAcerto" class="form-control form-control-lg border-primary text-center fw-bold fs-4 mx-auto" style="max-width: 400px;" placeholder="Bipe bloqueado..." disabled>
+                </div>
+                
+                <div class="p-4 border rounded bg-white shadow-sm mx-auto" style="max-width: 500px;">
+                    <h5 class="fw-bold text-dark mb-1" id="lblNomeProdutoBipado">Nenhum produto selecionado</h5>
+                    <p class="text-muted small mb-3" id="lblCodProdutoBipado">---</p>
+                    
+                    <div class="d-flex justify-content-around align-items-center mt-3 border-top pt-3">
+                        <div>
+                            <span class="text-muted small fw-bold">Estoque Atual</span><br>
+                            <span class="fs-4 fw-bold" id="lblEstoqueAtual">0</span>
+                        </div>
+                        <div>
+                            <i class="bi bi-arrow-right-circle-fill fs-2 text-success"></i>
+                        </div>
+                        <div>
+                            <span class="text-muted small fw-bold">Nova Contagem</span><br>
+                            <span class="fs-1 fw-bold text-success" id="lblNovaContagem">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button class="btn btn-lg text-white fw-bold shadow px-5" style="background-color: #00C853;" id="btnGravarContagem" disabled>GRAVAR CONTAGEM</button>
+                    <button class="btn btn-lg btn-outline-secondary fw-bold px-4 ms-2" id="btnLimparAcerto">Limpar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulo 2: Acerto Manual e Pesquisa -->
+    <div class="col-md-5">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header text-white fw-bold" style="background-color: #101820; border-bottom: 3px solid #FFB81C;">
+                <i class="bi bi-search"></i> Pesquisa e Ajuste Manual
+            </div>
+            <div class="card-body bg-light position-relative">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-muted">1. Pesquisar Produto (Nome ou Cód. Interno)</label>
+                    <div class="input-group">
+                        <input type="text" id="inputBuscaManual" class="form-control" placeholder="Digite para buscar..." autocomplete="off">
+                        <button class="btn text-white fw-bold" style="background-color: #101820;" id="btnBuscarManual">🔍</button>
+                    </div>
+                    <div class="list-group position-absolute w-100 shadow" id="listaBuscaManual" style="z-index: 1050; max-height: 250px; overflow-y: auto; display: none; left: 0; top: 75px;">
+                        <!-- Resultados renderizados via JS -->
+                    </div>
+                </div>
+
+                <div class="p-3 border rounded bg-white shadow-sm mb-4">
+                    <h6 class="fw-bold text-dark mb-0" id="manualNomeProduto">Aguardando seleção...</h6>
+                    <small class="text-muted" id="manualCodProduto">---</small>
+                    <input type="hidden" id="produtoSelecionadoId">
+                    <input type="hidden" id="produtoPrecoCusto">
+                    <hr>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small text-muted">Estoque no Sistema</label>
+                            <input type="text" id="manualEstoqueAtual" class="form-control bg-light fw-bold text-center" readonly value="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold" style="color: #FFB81C;">2. Novo Estoque</label>
+                            <!-- Campo inicialmente bloqueado -->
+                            <input type="number" id="manualNovoEstoque" class="form-control fw-bold border-warning text-center fs-5" value="0" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid">
+                    <button class="btn text-dark fw-bold shadow-sm fs-5" style="background-color: #FFB81C;" id="btnAtualizarEstoque" disabled>ATUALIZAR ESTOQUE MANUAL</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Assinatura Eletrônica e Motivo -->
+<div class="modal fade" id="modalAssinaturaAcerto" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header text-white" style="background-color: #101820; border-bottom: 3px solid #FFB81C;">
+                <h5 class="modal-title fw-bold"><i class="bi bi-shield-lock-fill"></i> Assinatura de Segurança</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <div class="alert alert-warning text-dark fw-bold small mb-4">
+                    Você está prestes a alterar o estoque do produto <span id="lblConfirmacaoProduto" class="text-danger"></span> de <span id="lblConfirmacaoAntigo">0</span> para <span id="lblConfirmacaoNovo" class="fs-5">0</span>.
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-muted">Motivo do Ajuste (Obrigatório)</label>
+                    <select id="motivoAcerto" class="form-select fw-bold border-warning" required>
+                        <option value="">Selecione o motivo...</option>
+                        <option value="Divergência de Contagem">Divergência de Contagem</option>
+                        <option value="Avaria / Produto Danificado">Avaria / Produto Danificado</option>
+                        <option value="Vencimento / Validade">Vencimento / Validade</option>
+                        <option value="Uso Interno da Loja">Uso Interno da Loja</option>
+                        <option value="Devolução sem Nota">Devolução sem Nota</option>
+                        <option value="Roubo / Furto">Roubo / Furto</option>
+                    </select>
+                </div>
+                
+                <hr class="my-4 opacity-25">
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-muted">Usuário Autorizado</label>
+                        <input type="text" id="usuarioAcerto" class="form-control fw-bold" placeholder="Seu login" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-muted">Senha</label>
+                        <input type="password" id="senhaAcerto" class="form-control" placeholder="Sua senha" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-white">
+                <button type="button" class="btn fw-bold text-muted" data-bs-dismiss="modal">Cancelar Operação</button>
+                <button type="button" class="btn text-dark fw-bold px-4" style="background-color: #FFB81C;" id="btnConfirmarAssinatura">CONFIRMAR AJUSTE</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const csrfTokenConfig = '{{ csrf_token }}';
+</script>
+<script src="{% static 'js/acerto_estoque.js' %}"></script>
+{% endblock %}

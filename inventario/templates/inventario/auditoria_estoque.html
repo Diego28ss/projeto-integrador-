@@ -1,0 +1,64 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="mb-4">
+    <h3 class="fw-bold text-secondary"><i class="bi bi-shield-check"></i> Auditoria de Estoque</h3>
+    <p class="text-muted small">Registo imutável de todos os acertos manuais e intervenções físicas no inventário da loja.</p>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header text-white fw-bold" style="background-color: #101820; border-bottom: 3px solid #C60C30;">
+        Histórico de Intervenções
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle text-center mb-0" style="font-size: 0.9rem;">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-start">Data / Hora</th>
+                    <th class="text-start">Produto</th>
+                    <th>De</th>
+                    <th>Para</th>
+                    <th>Diferença (Qtd)</th>
+                    <th class="text-end">Impacto Financeiro</th>
+                    <th class="text-start">Motivo Declarado</th>
+                    <th>Usuário (Assinatura)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in auditorias %}
+                <tr>
+                    <td class="text-start text-muted small fw-bold">{{ log.data_alteracao|date:"d/m/Y H:i" }}</td>
+                    <td class="text-start">
+                        <strong class="text-dark">{{ log.produto.nome }}</strong><br>
+                        <small class="text-muted">Cód: {{ log.produto.cod_interno }}</small>
+                    </td>
+                    <td class="text-secondary fw-bold">{{ log.estoque_antigo }}</td>
+                    <td class="fw-bold" style="color: #101820;">{{ log.estoque_novo }}</td>
+                    
+                    <!-- Diferença Qtd (Cor condicional) -->
+                    <td>
+                        <span class="badge {% if log.diferenca_quantidade > 0 %}bg-success{% elif log.diferenca_quantidade < 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {% if log.diferenca_quantidade > 0 %}+{% endif %}{{ log.diferenca_quantidade }}
+                        </span>
+                    </td>
+                    
+                    <!-- Impacto Financeiro (Cor condicional) -->
+                    <td class="text-end fw-bold {% if log.diferenca_financeira > 0 %}text-success{% elif log.diferenca_financeira < 0 %}text-danger{% else %}text-muted{% endif %}">
+                        R$ {{ log.diferenca_financeira }}
+                    </td>
+                    
+                    <td class="text-start">
+                        <span class="badge border border-secondary text-secondary" style="background-color: #f8f9fa;">{{ log.motivo }}</span>
+                    </td>
+                    <td><strong class="text-primary">{{ log.usuario }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">Nenhuma alteração manual registada no estoque até ao momento.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

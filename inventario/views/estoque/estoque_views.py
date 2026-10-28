@@ -4,6 +4,8 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Q
 from django.db import transaction
+from inventario.services.estoque.xml_services import processar_upload_xml
+
 
 # Importação do seu modelo customizado de usuários
 from inventario.models import Usuarios
@@ -95,14 +97,21 @@ def salvar_produto(request):
             produto.save()
             messages.success(request, f"Produto '{nome}' atualizado com sucesso!")
         else:
-            Produtos.objects.create(
+            # 1. Cria o produto e o banco de dados gera o ID automaticamente
+            novo_produto = Produtos.objects.create(
                 nome=nome, cod_barras=cod_barras, preco_custo=preco_custo,
                 preco_venda=preco_venda, estoque_atual=estoque_atual,
                 unidade=unidade, marca=marca_obj, familia=familia_obj, status=status,
                 ncm=ncm, cest=cest, cfop_padrao=cfop_obj, csosn_padrao=csosn_obj
             )
+            
+            # 2. Captura o ID gerado e salva como código interno automaticamente
+            novo_produto.cod_interno = str(novo_produto.id)
+            novo_produto.save()
+            
             messages.success(request, f"Produto '{nome}' cadastrado com sucesso!")
     return redirect('tela_estoque_produtos')
+
 
 def excluir_produto(request, id):
     produto = get_object_or_404(Produtos, id=id)
@@ -323,3 +332,18 @@ def tela_conferencia_scanner(request, chave):
         return redirect('login')
         
     return render(request, 'inventario/conferencia_scanner.html', {'chave': chave})
+
+def api_upload_xml(request):
+    if request.method == 'POST':
+        arquivo = request.FILES.get('arquivo_xml')
+        if not arquivo:
+            return JsonResponse({'status': 'erro', 'mensagem': 'Nenhum arquivo enviado.'})
+        
+        try:
+            # Envia o ficheiro para o cérebro que criámos no xml_services.py
+            dados_nota = processar_upload_xml(arquivo)
+            return JsonResponse({'status': 'sucesso', 'dados': dados_nota})
+        except Exception as e:
+            return JsonResponse({'status': 'erro', 'mensagem': str(e)})
+            
+    return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'})

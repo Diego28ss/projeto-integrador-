@@ -4,7 +4,6 @@ from django.urls import path
 # Importações das novas Thin Views separadas por módulo
 from inventario.views import autenticacao_views
 from inventario.views.vendas import pdv_views, relatorios_views
-from inventario.views.estoque import estoque_views
 from inventario.views.clientes import cliente_views
 from inventario.views.configuracoes import config_views
 from inventario.views.estoque import estoque_views, xml_views
@@ -42,7 +41,8 @@ urlpatterns = [
     path('gerencia/fiscal/csosn/salvar/', config_views.salvar_csosn, name='salvar_csosn'),
     path('gerencia/fiscal/csosn/alternar/<int:id>/', config_views.alternar_csosn, name='alternar_csosn'),
     path('gerencia/fiscal/csosn/excluir/<int:id>/', config_views.excluir_csosn, name='excluir_csosn'),
-    
+    path('api/upload-xml/', estoque_views.api_upload_xml, name='api_upload_xml'),
+
     
 
     # 👥 Clientes

@@ -128,9 +128,11 @@ function carregarDadosNota() {
         }
     }
 
-    // Tabela de Produtos com Leitura de Rascunho
+    // Tabela de Produtos com Leitura de Rascunho e VÍNCULOS AUTOMÁTICOS
     let rascunho = JSON.parse(localStorage.getItem('rascunho_xml_' + nfeChaveParam)) || {};
     let itensHtml = '';
+    
+    let itensDaNota = nota.itens_processados || nota.itens || []; 
     let detNodes = xmlDoc.getElementsByTagName("det");
     
     for (let i = 0; i < detNodes.length; i++) {
@@ -168,15 +170,42 @@ function carregarDadosNota() {
             if (ipiTrib) vIpi = getTagFloat(ipiTrib, "vIPI");
         }
 
-        // DADOS SALVOS NO RASCUNHO
         let rascunhoLinha = rascunho[i] || null;
-        let vinculado = rascunhoLinha ? rascunhoLinha.vinculado : 'nao';
-        let produtoId = rascunhoLinha ? rascunhoLinha.produtoId : '';
-        let statusStr = rascunhoLinha ? rascunhoLinha.status : 'pendente';
-        let codInterno = rascunhoLinha ? rascunhoLinha.codInterno : '---';
-        let nomeInterno = rascunhoLinha ? rascunhoLinha.nomeInterno : 'Aguardando vínculo...';
-        let fator = rascunhoLinha ? rascunhoLinha.fator : '1';
-        let cfopEnt = rascunhoLinha ? rascunhoLinha.cfopEnt : '1102';
+        let itemBackend = itensDaNota[i] || null; 
+
+        let vinculado = 'nao';
+        let produtoId = '';
+        let statusStr = 'pendente';
+        let codInterno = '---';
+        let nomeInterno = 'Aguardando vínculo...';
+        let fator = '1';
+        let cfopEnt = '1102';
+
+        if (rascunhoLinha) {
+            vinculado = rascunhoLinha.vinculado;
+            produtoId = rascunhoLinha.produtoId;
+            statusStr = rascunhoLinha.status;
+            codInterno = rascunhoLinha.codInterno;
+            nomeInterno = rascunhoLinha.nomeInterno;
+            fator = rascunhoLinha.fator;
+            cfopEnt = rascunhoLinha.cfopEnt;
+        } 
+        else if (itemBackend && itemBackend.status_vinculo === 'sucesso') {
+            vinculado = 'sim';
+            produtoId = itemBackend.produto_vinculado_id;
+            
+            // Garante que valores nulos, indefinidos, vazios ou '---' acionem o fallback
+            if (itemBackend.produto_vinculado_cod_interno && itemBackend.produto_vinculado_cod_interno !== '---') {
+                codInterno = itemBackend.produto_vinculado_cod_interno;
+            } else {
+                codInterno = itemBackend.cProd;
+            }
+            
+            nomeInterno = itemBackend.produto_vinculado_nome;
+            
+            // 🔥 LINHA NOVA: Força o botão de Ações a ficar VERDE (Concluído) automaticamente
+            statusStr = 'concluido'; 
+        }
 
         let btnAcoesStatus = statusStr === 'concluido' ? 'disabled' : '';
         let htmlCod = vinculado === 'sim' ? `<span class="badge bg-dark">${codInterno}</span>` : `<span class="text-muted">---</span>`;
@@ -215,6 +244,8 @@ function carregarDadosNota() {
     }
     document.getElementById('listaProdutosXML').innerHTML = itensHtml;
 }
+
+
 
 // ==========================================
 // FUNÇÕES DE VÍNCULO E CADASTRO

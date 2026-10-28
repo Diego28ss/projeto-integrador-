@@ -61,7 +61,8 @@ def api_cadastrar_produto_xml(request):
     if request.method == 'POST':
         try:
             dados = json.loads(request.body)
-            produto = Produtos.objects.create(
+            # 1. Cria o produto com os dados que vieram da nota
+            novo_produto = Produtos.objects.create(
                 nome=dados.get('nome'),
                 cod_barras=dados.get('cod_barras'),
                 preco_custo=dados.get('preco_custo'),
@@ -73,7 +74,13 @@ def api_cadastrar_produto_xml(request):
                 status='ATIVO',
                 estoque_atual=0 # O estoque só sobe ao "Finalizar Entrada"
             )
-            return JsonResponse({'status': 'sucesso', 'cod_interno': produto.cod_interno, 'nome': produto.nome})
+            
+            # 2. Regra de Negócio JB Tintas: cod_interno recebe o número do ID
+            novo_produto.cod_interno = str(novo_produto.id)
+            novo_produto.save()
+            
+            return JsonResponse({'status': 'sucesso', 'cod_interno': novo_produto.cod_interno, 'nome': novo_produto.nome})
         except Exception as e:
             return JsonResponse({'status': 'erro', 'mensagem': str(e)})
     return JsonResponse({'status': 'erro', 'mensagem': 'Método inválido'})
+

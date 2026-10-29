@@ -179,7 +179,7 @@ def tela_manutencao_pontos(request):
 def salvar_configuracao_pontos(request):
     if request.method == 'POST':
         tipo = request.POST.get('tipo_usuario')
-        pontos_raw = request.POST.get('pontos_necessarios_resgate', '1')
+        pontos_raw = request.POST.get('pontos_por_real', '1')
         
         try:
             pontos = int(pontos_raw) if pontos_raw.strip() != "" else 1
@@ -187,13 +187,17 @@ def salvar_configuracao_pontos(request):
             pontos = 1
 
         config, created = ConfiguracaoPontos.objects.get_or_create(tipo_usuario=tipo)
-        config.pontos_necessarios_resgate = pontos
-        config.valor_resgate_reais = 1.00
+        # ATUALIZAÇÃO: Agora altera a nova coluna pontos_por_real
+        config.pontos_por_real = pontos
+        
+        # Garante que o divisor universal esteja travado em 100
+        config.divisor_resgate = 100
         config.save()
 
         messages.success(request, f"Regras de pontuação para {tipo.lower()} salvas com sucesso!")
 
     return redirect('tela_manutencao_pontos')
+
 
 # ==========================================
 # ⚖️ CONFIGURAÇÕES FISCAIS (CFOP / CSOSN)

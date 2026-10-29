@@ -34,8 +34,9 @@ def salvar_edicao_cliente(request):
     return redirect('tela_consultar_clientes')
 
 def api_historico_cliente(request):
-    nome_cliente = request.GET.get('nome', '')
-    vendas = Vendas.objects.filter(cliente=nome_cliente, status='VENDA').order_by('-id')
+    # ATUALIZAÇÃO: Busca pelo ID do cliente
+    cliente_id = request.GET.get('id')
+    vendas = Vendas.objects.filter(cliente_id=cliente_id, status='VENDA').order_by('-id')
     historico = [{'id': v.id, 'data': v.data_venda.strftime('%d/%m/%Y %H:%M'), 'vendedor': v.vendedor, 'valor': float(v.valor_total)} for v in vendas]
     return JsonResponse({'historico': historico})
 
@@ -48,3 +49,21 @@ def excluir_cliente(request, id):
     except Exception as e:
         print(f"Erro ao excluir cliente: {e}")
     return redirect('tela_consultar_clientes')
+
+def api_extrato_pontos(request):
+    cliente_id = request.GET.get('id')
+    from inventario.models.clientes.cliente_models import HistoricoPontos
+    
+    registros = HistoricoPontos.objects.filter(cliente_id=cliente_id).order_by('-data_hora')
+    extrato = []
+    
+    for r in registros:
+        extrato.append({
+            'data': r.data_hora.strftime('%d/%m/%Y %H:%M'),
+            'tipo': r.tipo_operacao.replace('_', ' ').title(),
+            'descricao': r.descricao,
+            'pontos': r.pontos,
+            'venda_id': r.venda_id if r.venda else None
+        })
+        
+    return JsonResponse({'extrato': extrato})

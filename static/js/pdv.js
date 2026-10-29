@@ -1,6 +1,7 @@
 let carrinho = [];
 let tagsBusca = [];
 let pointsToRedeem = 0;
+let valorDescontoPontosAplicado = 0.0;
 let descontoGlobalAplicado = false;
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -225,57 +226,112 @@ function calcularTroco() {
 function atualizarResumoCaixa() {
     let subtotalOriginal = carrinho.reduce((s, i) => s + (i.preco * i.qtd), 0);
     let valorFinal = parseFloat(document.getElementById('inputValorFinal').value) || 0;
+    
+    // A economia total é tudo que baixou do subtotal
     let economiaTotal = subtotalOriginal - valorFinal;
+    
+    // O desconto comum é a economia total MENOS o que veio de pontos
+    let descontoComum = economiaTotal - valorDescontoPontosAplicado;
+    if (descontoComum < 0.01) descontoComum = 0; // Previne errinhos de dízima no JS
 
     document.getElementById('txtSubtotal').innerText = `R$ ${subtotalOriginal.toFixed(2).replace('.', ',')}`;
-    document.getElementById('txtDesconto').innerText = `- R$ ${economiaTotal > 0 ? economiaTotal.toFixed(2).replace('.', ',') : '0,00'}`;
+    
+    // Atualiza o Desconto Comum
+    document.getElementById('txtDesconto').innerText = `- R$ ${descontoComum > 0 ? descontoComum.toFixed(2).replace('.', ',') : '0,00'}`;
+    
+    // Atualiza o Desconto de Pontos
+    let linhaDescontoPontos = document.getElementById('linhaDescontoPontos');
+    if (valorDescontoPontosAplicado > 0) {
+        linhaDescontoPontos.style.display = 'flex';
+        document.getElementById('txtDescontoPontos').innerText = `- R$ ${valorDescontoPontosAplicado.toFixed(2).replace('.', ',')}`;
+    } else {
+        linhaDescontoPontos.style.display = 'none';
+    }
+
     document.getElementById('txtTotalCompra').innerText = `R$ ${valorFinal.toFixed(2).replace('.', ',')}`;
 
     calcularTroco();
 }
+
 
 function limparCarrinho() {
     if(confirm("Deseja realmente limpar toda a operação?")) {
         carrinho = [];
         tagsBusca = [];
         pointsToRedeem = 0;
+        valorDescontoPontosAplicado = 0.0;
         descontoGlobalAplicado = false;
         renderizarTags();
         document.getElementById('inputBusca').value = '';
         document.getElementById('resultadosBusca').style.display = 'none';
         document.getElementById('selectCliente').value = '';
+        document.getElementById('selectIndicante').value = '';
         document.getElementById('areaResgatePontos').style.display = 'none';
         document.getElementById('inputValorRecebido').value = '';
         document.getElementById('inputTroco').value = 'R$ 0,00';
+        
+        let btnVenda = document.getElementById('btnVenda');
+        if(btnVenda) {
+            btnVenda.disabled = false;
+            btnVenda.style.opacity = '1';
+            btnVenda.style.cursor = 'pointer';
+        }
+        
         atualizarTela();
     }
 }
 
-function verificarPontos() {
-    let clienteNome = document.getElementById('selectCliente').value;
-    let areaResgate = document.getElementById('areaResgatePontos');
-    pointsToRedeem = 0;
-    areaResgate.style.display = 'none';
 
-    if (clienteNome) {
-        fetch(`/api/consultar-pontos/?cliente=${encodeURIComponent(clienteNome)}`)
+function verificarPontos() {
+    let clienteId = document.getElementById('selectCliente').value;
+    let areaResgate = document.getElementById('areaResgatePontos');
+    let btnVenda = document.getElementById('btnVenda');
+    
+    pointsToRedeem = 0;
+    valorDescontoPontosAplicado = 0.0;
+    areaResgate.style.display = 'none';
+    
+    // Libera o botão por padrão
+    if(btnVenda) {
+        btnVenda.disabled = false;
+        btnVenda.style.opacity = '1';
+        btnVenda.style.cursor = 'pointer';
+    }
+
+    if (clienteId) {
+        fetch(`/api/consultar-pontos/?cliente_id=${encodeURIComponent(clienteId)}`)
             .then(res => res.json())
             .then(data => {
-                if (data.pontos_utilizaveis > 0) {
+                if (data.pontos_a_resgatar > 0) {
+                    // TRAVA VISUAL E FUNCIONAL DO BOTÃO DE VENDA
+                    if(btnVenda) {
+                        btnVenda.disabled = true; 
+                        btnVenda.style.opacity = '0.4'; // Deixa o botão apagadinho
+                        btnVenda.style.cursor = 'not-allowed'; // Muda o mouse para proibido
+                    }
+                    
                     areaResgate.innerHTML = `
-                        <div class="alert p-2 mb-0 shadow-sm text-center text-dark" style="background-color: #FFB81C; border: none;">
-                            <strong class="d-block mb-1">🎁 Saldo: ${data.pontos_totais} pontos</strong>
-                            <span class="small d-block mb-2">Vale <b>R$ ${data.valor_reais.toFixed(2).replace('.', ',')}</b> de desconto!</span>
-                            <button type="button" class="btn btn-sm text-white fw-bold w-100" style="background-color: #101820;" onclick="aplicarDescontoPontos(${data.pontos_utilizaveis}, ${data.valor_reais})">
-                                💰 RESGATAR AGORA
-                            </button>
+                        <div class="alert p-3 mb-0 shadow-sm text-center text-dark" style="background-color: #FFB81C; border: none; border-radius: 8px;">
+                            <strong class="d-block mb-1 fs-5">🎁 Saldo: ${data.pontos} pontos</strong>
+                            <span class="d-block mb-3">Vale <b>R$ ${data.valor_desconto.toFixed(2).replace('.', ',')}</b> de desconto!</span>
+                            
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn text-white fw-bold w-50 shadow-sm" style="background-color: #101820;" onclick="aplicarDescontoPontos(${data.pontos_a_resgatar}, ${data.valor_desconto})">
+                                    💰 RESGATAR
+                                </button>
+                                <button type="button" class="btn btn-outline-dark fw-bold w-50 shadow-sm" onclick="ignorarResgatePontos()">
+                                    NÃO RESGATAR
+                                </button>
+                            </div>
                         </div>
                     `;
                     areaResgate.style.display = 'block';
                 }
-            });
+            })
+            .catch(err => console.error("Erro ao buscar pontos:", err));
     }
 }
+
 
 function aplicarDescontoPontos(pontos, valorDesconto) {
     let totalComDescontosItens = carrinho.reduce((s, i) => s + (i.preco_desconto * i.qtd), 0);
@@ -284,36 +340,49 @@ function aplicarDescontoPontos(pontos, valorDesconto) {
     if (valorDesconto > totalComDescontosItens) valorDesconto = totalComDescontosItens;
 
     pointsToRedeem = pontos;
+    valorDescontoPontosAplicado = valorDesconto;
 
     let inputFinal = document.getElementById('inputValorFinal');
     inputFinal.value = (totalComDescontosItens - valorDesconto).toFixed(2);
 
     aplicarDescontoGlobalPorValor();
 
-    let areaResgate = document.getElementById('areaResgatePontos');
-    areaResgate.innerHTML = `
-        <div class="alert p-2 mb-0 shadow-sm text-center text-white" style="background-color: #00C853; border: none;">
-            <strong>✅ R$ ${valorDesconto.toFixed(2).replace('.', ',')} Aplicados!</strong><br>
-            <small>(${pontos} pontos serão debitados na finalização)</small>
-        </div>
-    `;
+    // Esconde o painel amarelo
+    document.getElementById('areaResgatePontos').style.display = 'none';
+    
+    // DESTRAVA O BOTÃO DE VENDA
+    let btnVenda = document.getElementById('btnVenda');
+    if(btnVenda) {
+        btnVenda.disabled = false;
+        btnVenda.style.opacity = '1';
+        btnVenda.style.cursor = 'pointer';
+    }
 }
+
 
 function finalizarOperacao(statusSelecionado) {
     if (carrinho.length === 0) return alert("O carrinho está vazio!");
+    
+    // BLOQUEIO DURO: Se o botão estiver desativado, impede a venda à força
+    let btnVenda = document.getElementById('btnVenda');
+    if (statusSelecionado === 'VENDA' && btnVenda && btnVenda.disabled === true) {
+        return alert("⚠️ Atenção: Você precisa escolher se vai RESGATAR ou NÃO RESGATAR os pontos do cliente antes de finalizar a venda.");
+    }
 
     let subtotalComDescontosItens = carrinho.reduce((s, i) => s + (i.preco_desconto * i.qtd), 0);
     let valorFinal = parseFloat(document.getElementById('inputValorFinal').value) || 0;
+    
     let descontoGlobalAdicional = subtotalComDescontosItens - valorFinal;
 
     let pacote = {
-        cliente: document.getElementById('selectCliente').value,
-        indicante: document.getElementById('selectIndicante').value,
+        cliente_id: document.getElementById('selectCliente').value || null,
+        indicante_id: document.getElementById('selectIndicante').value || null,
         vendedor: document.getElementById('selectVendedor').value,
         status: statusSelecionado,
         valor_final: valorFinal,
         desconto: descontoGlobalAdicional > 0 ? descontoGlobalAdicional : 0,
         pontos_resgatados: pointsToRedeem,
+        valor_desconto_pontos: valorDescontoPontosAplicado,
         carrinho: carrinho
     };
 
@@ -324,7 +393,7 @@ function finalizarOperacao(statusSelecionado) {
     }).then(res => res.json()).then(data => {
         if (data.status === 'sucesso') {
             if(statusSelecionado === 'ORCAMENTO') {
-                alert('📝 Orçamento gerado com sucesso! Nenhum estoque ou ponto foi alterado.');
+                alert('📝 Orçamento gerado com sucesso!');
             } else {
                 alert('✅ Venda finalizada com sucesso! O estoque foi deduzido e a pontuação atualizada.');
             }
@@ -335,4 +404,20 @@ function finalizarOperacao(statusSelecionado) {
             alert("Erro ao salvar a operação: " + data.mensagem);
         }
     });
+}
+
+function ignorarResgatePontos() {
+    pointsToRedeem = 0;
+    valorDescontoPontosAplicado = 0.0;
+    
+    // Esconde o painel amarelo
+    document.getElementById('areaResgatePontos').style.display = 'none';
+    
+    // DESTRAVA O BOTÃO DE VENDA
+    let btnVenda = document.getElementById('btnVenda');
+    if(btnVenda) {
+        btnVenda.disabled = false;
+        btnVenda.style.opacity = '1';
+        btnVenda.style.cursor = 'pointer';
+    }
 }

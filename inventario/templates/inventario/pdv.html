@@ -45,10 +45,9 @@
                 <select id="selectCliente" class="form-select border-secondary shadow-sm" onchange="verificarPontos()">
                     <option value="">CONSUMIDOR PADRÃO</option>
                     {% for c in clientes %}
-                    <option value="{{ c.nome }}">{{ c.nome }}</option>
+                    <option value="{{ c.id }}">{{ c.nome }}</option>
                     {% endfor %}
                 </select>
-                <div id="areaResgatePontos" class="mt-2" style="display: none;"></div>
             </div>
 
             <div class="mb-3">
@@ -56,7 +55,7 @@
                 <select id="selectIndicante" class="form-select border-secondary shadow-sm">
                     <option value="">-- NENHUM INDICANTE --</option>
                     {% for pintor in pintores %}
-                    <option value="{{ pintor.nome }}">{{ pintor.nome }}</option>
+                    <option value="{{ pintor.id }}">{{ pintor.nome }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -77,15 +76,24 @@
                 <strong id="txtSubtotal">R$ 0,00</strong>
             </div>
 
-            <div class="d-flex justify-content-between mb-2 fs-6 text-danger">
-                <span>Desconto:</span>
+            <!-- DESCONTO COMUM -->
+            <div class="d-flex justify-content-between mb-1 fs-6 text-danger">
+                <span>Desconto Comum:</span>
                 <strong id="txtDesconto">- R$ 0,00</strong>
             </div>
 
-            <div class="d-flex justify-content-between mb-3 fs-4 text-dark fw-bold">
+            <!-- DESCONTO POR PONTOS (Escondido por padrão) -->
+            <div class="d-flex justify-content-between mb-2 fs-6 text-primary" id="linhaDescontoPontos" style="display: none;">
+                <span>Desconto por Pontos:</span>
+                <strong id="txtDescontoPontos">- R$ 0,00</strong>
+            </div>
+
+            <div class="d-flex justify-content-between mb-3 fs-4 text-dark fw-bold border-top pt-2 border-secondary">
                 <span>TOTAL DA COMPRA:</span>
                 <strong id="txtTotalCompra">R$ 0,00</strong>
             </div>
+            
+            <div id="areaResgatePontos" class="mb-3" style="display: none;"></div>
 
             <div class="row g-2 mb-3 mt-2">
                 <div class="col-8">
@@ -113,7 +121,7 @@
                 <button class="btn btn-lg w-50 fw-bold py-3 shadow-sm text-dark" style="background-color: #FFB81C; border: none;" onclick="finalizarOperacao('ORCAMENTO')">
                     📝 ORÇAMENTO
                 </button>
-                <button class="btn btn-lg w-50 fw-bold py-3 shadow-sm text-white" style="background-color: #00C853; border: none;" onclick="finalizarOperacao('VENDA')">
+                <button id="btnVenda" class="btn btn-lg w-50 fw-bold py-3 shadow-sm text-white" style="background-color: #00C853; border: none;" onclick="finalizarOperacao('VENDA')">
                     💰 VENDA
                 </button>
             </div>
@@ -125,5 +133,6 @@
 <script>
     const csrfTokenConfig = '{{ csrf_token }}';
 </script>
-<script src="{% static 'js/pdv.js' %}"></script>
+<!-- Atualizado para v=2.4 -->
+<script src="{% static 'js/pdv.js' %}?v=2.4"></script>
 {% endblock %}

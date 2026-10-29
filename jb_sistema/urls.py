@@ -41,15 +41,14 @@ urlpatterns = [
     path('gerencia/fiscal/csosn/salvar/', config_views.salvar_csosn, name='salvar_csosn'),
     path('gerencia/fiscal/csosn/alternar/<int:id>/', config_views.alternar_csosn, name='alternar_csosn'),
     path('gerencia/fiscal/csosn/excluir/<int:id>/', config_views.excluir_csosn, name='excluir_csosn'),
-    path('api/upload-xml/', estoque_views.api_upload_xml, name='api_upload_xml'),
-
     
-
     # 👥 Clientes
     path('clientes/', cliente_views.tela_consultar_clientes, name='tela_consultar_clientes'),
     path('clientes/editar/', cliente_views.salvar_edicao_cliente, name='salvar_edicao_cliente'),
     path('clientes/excluir/<int:id>/', cliente_views.excluir_cliente, name='excluir_cliente'),
     path('api/historico-cliente/', cliente_views.api_historico_cliente, name='api_historico_cliente'),
+    # NOVA ROTA: Consulta do extrato de pontos
+    path('api/extrato-pontos/', cliente_views.api_extrato_pontos, name='api_extrato_pontos'),
 
     # ⚙️ Gerência de Auxiliares
     path('gerencia/auxiliares/', config_views.tela_marcas, name='tela_gerencia_auxiliares'),
@@ -76,17 +75,16 @@ urlpatterns = [
     path('api/xml/buscar-produtos/', xml_views.api_buscar_produtos_xml, name='api_buscar_produtos_xml'),
     path('api/xml/vincular-produto/', xml_views.api_vincular_produto_xml, name='api_vincular_produto_xml'),
     path('api/xml/cadastrar-produto/', xml_views.api_cadastrar_produto_xml, name='api_cadastrar_produto_xml'),
-    path('api/efetivar-entrada/', estoque_views.api_efetivar_entrada, name='api_efetivar_entrada'),
+    
     path('estoque/acerto/', estoque_views.tela_acerto_estoque, name='tela_acerto_estoque'),
-# APIs Acerto de Estoque
+    
+    # APIs Acerto de Estoque
     path('api/estoque/buscar-acerto/', estoque_views.api_buscar_produtos_acerto, name='api_buscar_produtos_acerto'),
     path('api/estoque/efetivar-acerto-seguro/', estoque_views.api_efetivar_acerto_seguro, name='api_efetivar_acerto_seguro'),
     path('gerencia/auditoria-estoque/', estoque_views.tela_auditoria_estoque, name='tela_auditoria_estoque'),
     path('api/estoque/cancelar-entrada/', estoque_views.api_cancelar_entrada_seguro, name='api_cancelar_entrada_seguro'),
     path('entrada-carga/conferencia/<str:chave>/scanner/', estoque_views.tela_conferencia_scanner, name='tela_conferencia_scanner'),
     
-    
-
     # 👥 Gestão de Equipe e Pontos
     path('gerencia/colaboradores/', config_views.tela_colaboradores, name='tela_colaboradores'),
     path('gerencia/colaboradores/salvar/', config_views.salvar_colaborador, name='salvar_colaborador'),

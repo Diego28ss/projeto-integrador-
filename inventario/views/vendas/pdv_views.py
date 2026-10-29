@@ -26,8 +26,15 @@ def tela_pdv(request):
     return render(request, 'inventario/pdv.html', context)
 
 def api_consultar_pontos(request):
-    nome_cliente = request.GET.get('cliente', '')
-    resultado = pontos_services.calcular_resgate_pontos(nome_cliente)
+    cliente_id = request.GET.get('cliente_id')
+    
+    if cliente_id:
+        try:
+            cliente_id = int(cliente_id)
+        except ValueError:
+            cliente_id = None
+            
+    resultado = pontos_services.calcular_resgate_pontos(cliente_id)
     return JsonResponse(resultado)
 
 def api_buscar_produtos(request):
@@ -53,13 +60,12 @@ def api_salvar_venda(request):
             carrinho = dados.get('carrinho', [])
             status_venda = dados.get('status', 'VENDA')
             
-            # TRADUÇÃO DOS DADOS DO JS PARA O FORMATO DO SERVIÇO
             dados_venda = {
                 'valor_total': dados.get('valor_final', 0),
                 'valor_desconto': dados.get('desconto', 0),
                 'vendedor': dados.get('vendedor', ''),
-                'cliente': dados.get('cliente', ''),
-                'indicante': dados.get('indicante', ''),
+                'cliente_id': dados.get('cliente_id'),
+                'indicante_id': dados.get('indicante_id'),
                 'cupom_texto': json.dumps(carrinho)
             }
 
@@ -67,7 +73,9 @@ def api_salvar_venda(request):
                 dados_venda=dados_venda,
                 carrinho=carrinho,
                 status_venda=status_venda,
-                pontos_resgatados=int(dados.get('pontos_resgatados', 0))
+                # ATUALIZAÇÃO: Mudamos de int() para float() para aceitar os centavos perfeitamente!
+                pontos_resgatados=float(dados.get('pontos_resgatados', 0.0)),
+                valor_desconto_pontos=float(dados.get('valor_desconto_pontos', 0.0))
             )
             return JsonResponse({'status': 'sucesso', 'venda_id': venda_id})
             

@@ -28,9 +28,9 @@
             top: 45%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 34px; /* Reduzido para encaixar na largura de 80mm */
+            font-size: 34px; 
             font-weight: bold;
-            color: rgba(0, 0, 0, 0.04); /* Opacidade muito baixa para não misturar com o texto preto */
+            color: rgba(0, 0, 0, 0.04); 
             z-index: -1;
             pointer-events: none;
             user-select: none;
@@ -76,7 +76,7 @@
 
     <div class="bold">PEDIDO Nº: {{ venda.id }}</div>
     <div class="bold">DATA: {{ venda.data_venda|date:"d/m/Y H:i:s" }}</div>
-    <div class="bold">CLIENTE: {{ venda.cliente|default:"CONSUMIDOR FINAL"|upper }}</div>
+    <div class="bold">CLIENTE: {{ venda.cliente.nome|default:"CONSUMIDOR FINAL"|upper }}</div>
     <div class="bold">VENDEDOR: {{ venda.vendedor|upper }}</div>
 
     <div class="linha-simples"></div>
@@ -110,11 +110,26 @@
 
     <div class="linha-simples"></div>
 
+    <!-- CÁLCULO SEPARADO DE DESCONTOS -->
     <table>
         <tr>
             <td class="bold">SUBTOTAL:</td>
             <td class="td-right bold">{{ subtotal_bruto|floatformat:2 }}</td>
         </tr>
+        
+        <!-- Subtrai o desconto de pontos do desconto global para achar o Desconto Comum -->
+        <tr>
+            <td>DESC. COMUM:</td>
+            <td class="td-right">- {{ venda.valor_desconto|add:"-"|add:venda.valor_desconto_pontos|floatformat:2 }}</td>
+        </tr>
+
+        <!-- Exibe a linha de Desconto de Pontos apenas se foi utilizado -->
+        {% if venda.valor_desconto_pontos > 0 %}
+        <tr>
+            <td>DESC. PONTOS:</td>
+            <td class="td-right">- {{ venda.valor_desconto_pontos|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
     </table>
 
     <div class="linha-dupla"></div>

@@ -11,14 +11,23 @@ class Vendas(models.Model):
     data_venda = models.DateTimeField(default=timezone.now)
     valor_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     valor_desconto = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    
+    # ATUALIZADO: Agora suporta valores fracionados (centavos) para pontos
+    pontos_resgatados = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    valor_desconto_pontos = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    
     vendedor = models.CharField(max_length=100, blank=True, null=True)
-    cliente = models.CharField(max_length=255, blank=True, null=True)
-    indicante = models.CharField(max_length=255, blank=True, null=True)
+    
+    # ATUALIZAÇÃO: Transforma o texto simples em um vínculo direto (ID) com o cadastro do cliente.
+    cliente = models.ForeignKey('inventario.Clientes', on_delete=models.SET_NULL, null=True, blank=True, related_name='compras_feitas')
+    indicante = models.ForeignKey('inventario.Clientes', on_delete=models.SET_NULL, null=True, blank=True, related_name='indicacoes_realizadas')
+    
     cupom_texto = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='VENDA')
 
     def __str__(self):
-        return f"{self.status} {self.id} - {self.cliente}"
+        return f"{self.status} {self.id} - Cliente ID: {self.cliente_id}"
+
 
 class ConfiguracaoPontos(models.Model):
     TIPO_CHOICES = [
@@ -26,10 +35,13 @@ class ConfiguracaoPontos(models.Model):
         ('PINTOR', 'Pintor / Indicante'),
     ]
     tipo_usuario = models.CharField(max_length=20, choices=TIPO_CHOICES, unique=True)
-    pontos_por_real = models.IntegerField(default=1)
-    pontos_necessarios_resgate = models.IntegerField(default=30)
-    valor_resgate_reais = models.DecimalField(max_digits=10, decimal_places=2, default=1.00)
+    
+    # ATUALIZADO: Define quantos pontos o usuário ganha a cada R$ 1,00 gasto (Decimal)
+    pontos_por_real = models.DecimalField(max_digits=10, decimal_places=2, default=1.00)
+    
+    # ATUALIZADO: Trava a matemática do sistema em decimal (100.00 pontos = R$ 1,00).
+    divisor_resgate = models.DecimalField(max_digits=10, decimal_places=2, default=100.00, help_text="Quantos pontos equivalem a R$ 1,00")
 
     def __str__(self):
-        return f"Regra {self.tipo_usuario}: {self.pontos_necessarios_resgate}pts = R$ {self.valor_resgate_reais}"
+        return f"Regra {self.tipo_usuario}: Ganha {self.pontos_por_real}pts a cada R$ 1,00"
     

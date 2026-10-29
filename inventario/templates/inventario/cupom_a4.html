@@ -19,9 +19,9 @@
             top: 55%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 75px; /* Tamanho reduzido para não ofuscar */
+            font-size: 75px; 
             font-weight: bold;
-            color: rgba(0, 0, 0, 0.03); /* Opacidade reduzida para máxima discrição */
+            color: rgba(0, 0, 0, 0.03); 
             z-index: -1;
             pointer-events: none;
             user-select: none;
@@ -45,7 +45,7 @@
         .text-center { text-align: center; }
 
         .totals-container { display: flex; justify-content: flex-end; }
-        .totals { width: 40%; border: 1px solid #ddd; padding: 15px; border-radius: 5px; background-color: rgba(249, 249, 249, 0.8); }
+        .totals { width: 45%; border: 1px solid #ddd; padding: 15px; border-radius: 5px; background-color: rgba(249, 249, 249, 0.8); }
         .totals p { justify-content: space-between; display: flex; margin: 8px 0; font-size: 15px; }
         .totals .final { font-size: 18px; font-weight: bold; border-top: 2px solid #ddd; padding-top: 10px; margin-top: 10px; color: #000; }
 
@@ -75,7 +75,7 @@
             <p><strong>Vendedor:</strong> {{ venda.vendedor|upper }}</p>
         </div>
         <div class="info-box">
-            <p><strong>Cliente:</strong> {{ venda.cliente|default:"CONSUMIDOR FINAL"|upper }}</p>
+            <p><strong>Cliente:</strong> {{ venda.cliente.nome|default:"CONSUMIDOR FINAL"|upper }}</p>
             <p><strong>Documento Não Fiscal - Conferência</strong></p>
         </div>
     </div>
@@ -104,7 +104,12 @@
     <div class="totals-container">
         <div class="totals">
             <p><span>Subtotal Bruto:</span> <span>R$ {{ subtotal_bruto|floatformat:2 }}</span></p>
-            <p><span>Desconto:</span> <span style="color: red;">- R$ {{ venda.valor_desconto|floatformat:2 }}</span></p>
+            <p><span>Desconto Comum:</span> <span style="color: red;">- R$ {{ venda.valor_desconto|add:"-"|add:venda.valor_desconto_pontos|floatformat:2 }}</span></p>
+            
+            {% if venda.valor_desconto_pontos > 0 %}
+            <p><span>Desconto por Pontos:</span> <span style="color: #0d6efd; font-weight: bold;">- R$ {{ venda.valor_desconto_pontos|floatformat:2 }}</span></p>
+            {% endif %}
+
             <p class="final"><span>Total a Pagar:</span> <span>R$ {{ venda.valor_total|floatformat:2 }}</span></p>
         </div>
     </div>

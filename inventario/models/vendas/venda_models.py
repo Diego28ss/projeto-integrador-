@@ -12,13 +12,16 @@ class Vendas(models.Model):
     valor_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     valor_desconto = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     
-    # ATUALIZADO: Agora suporta valores fracionados (centavos) para pontos
+    # ATUALIZADO: Suporta valores fracionados (centavos) para pontos
     pontos_resgatados = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     valor_desconto_pontos = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     
     vendedor = models.CharField(max_length=100, blank=True, null=True)
     
-    # ATUALIZAÇÃO: Transforma o texto simples em um vínculo direto (ID) com o cadastro do cliente.
+    # NOVO CAMPO: Guarda o valor exato da comissão gerada nesta venda
+    valor_comissao = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    
+    # ATUALIZAÇÃO: Vínculo direto (ID) com o cadastro do cliente.
     cliente = models.ForeignKey('inventario.Clientes', on_delete=models.SET_NULL, null=True, blank=True, related_name='compras_feitas')
     indicante = models.ForeignKey('inventario.Clientes', on_delete=models.SET_NULL, null=True, blank=True, related_name='indicacoes_realizadas')
     

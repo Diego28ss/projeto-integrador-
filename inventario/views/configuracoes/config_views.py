@@ -7,7 +7,8 @@ from inventario.models.produtos.produto_models import Familia, Marca, Tributacao
 from inventario.models.produtos.produto_models import Familia, Marca
 from inventario.models.usuarios.usuario_models import Usuarios
 from inventario.models.vendas.venda_models import ConfiguracaoPontos, Vendas
-
+from datetime import date
+from django.utils import timezone
 # ==========================================
 # ⚙️ GESTÃO DE MARCAS E FAMÍLIAS
 # ==========================================
@@ -98,16 +99,26 @@ def tela_colaboradores(request):
         return redirect('login')
 
     lista_equipe = Usuarios.objects.all()
+    
+    # FASE 1: Identificar o mês e o ano actuais
+    hoje = timezone.now()
+    mes_atual = hoje.month
+    ano_atual = hoje.year
 
     for colaborador in lista_equipe:
-        # A view usa a agregação do banco de dados (mais rápido que o loop antigo)
-        total_vendido = Vendas.objects.filter(
+        # FASE 1: A consulta agora filtra pelo mês e ano actuais
+        vendas_do_mes = Vendas.objects.filter(
             vendedor=colaborador.login, 
-            status='VENDA'
-        ).aggregate(total=Sum('valor_total'))['total'] or 0.0
-
-        # Delegação para o FAT MODEL: A classe Usuário calcula a sua própria comissão
-        comissao_a_pagar = colaborador.calcular_comissao(total_vendido)
+            status='VENDA',
+            data_venda__year=ano_atual,
+            data_venda__month=mes_atual
+        )
+        
+        # Soma do total vendido
+        total_vendido = vendas_do_mes.aggregate(total=Sum('valor_total'))['total'] or 0.0
+        
+        # FASE 1 e 2: A view já não recalcula a comissão; pega o valor real gravado na Venda
+        comissao_a_pagar = vendas_do_mes.aggregate(total=Sum('valor_comissao'))['total'] or 0.0
 
         colaborador.total_vendido = float(total_vendido)
         colaborador.comissao_a_pagar = float(comissao_a_pagar)

@@ -1,22 +1,32 @@
 from django.db import transaction
+from decimal import Decimal
 from inventario.models.vendas.venda_models import Vendas, ConfiguracaoPontos
 from inventario.models.produtos.produto_models import Produtos
 from inventario.models.clientes.cliente_models import Clientes, HistoricoPontos
 from inventario.models.usuarios.usuario_models import Usuarios
-from inventario.models.vendas.venda_models import ConfiguracaoPontos
-
 
 def processar_nova_venda(dados_venda, carrinho, status_venda, pontos_resgatados=0.0, valor_desconto_pontos=0.00):
     with transaction.atomic():
         cliente_id = dados_venda.get('cliente_id')
         indicante_id = dados_venda.get('indicante_id')
+        vendedor_login = dados_venda.get('vendedor')
+        
+        valor_total = Decimal(str(dados_venda['valor_total']))
+
+        # FASE 2: Calcular a comissão do vendedor sobre o valor líquido
+        valor_comissao = Decimal('0.00')
+        if vendedor_login and status_venda == 'VENDA':
+            vendedor_obj = Usuarios.objects.filter(login=vendedor_login).first()
+            if vendedor_obj:
+                valor_comissao = vendedor_obj.calcular_comissao(valor_total)
 
         venda = Vendas.objects.create(
-            valor_total=dados_venda['valor_total'],
+            valor_total=valor_total,
             valor_desconto=dados_venda['valor_desconto'],
             pontos_resgatados=pontos_resgatados,
             valor_desconto_pontos=valor_desconto_pontos,
-            vendedor=dados_venda['vendedor'],
+            vendedor=vendedor_login,
+            valor_comissao=valor_comissao, # Grava o valor da comissão na venda
             cliente_id=cliente_id,
             indicante_id=indicante_id,
             status=status_venda,
@@ -39,24 +49,24 @@ def processar_nova_venda(dados_venda, carrinho, status_venda, pontos_resgatados=
         # -------------------------------------------------------------
         # 1. PROCESSAR RESGATE DE PONTOS
         # -------------------------------------------------------------
-        if cliente_id and pontos_resgatados > 0:
+        if cliente_id and float(pontos_resgatados) > 0:
             cliente_obj = Clientes.objects.select_for_update().filter(id=cliente_id).first()
-            if cliente_obj and float(cliente_obj.pontos) >= pontos_resgatados:
-                cliente_obj.pontos = float(cliente_obj.pontos) - pontos_resgatados
+            if cliente_obj and float(cliente_obj.pontos) >= float(pontos_resgatados):
+                cliente_obj.pontos = float(cliente_obj.pontos) - float(pontos_resgatados)
                 cliente_obj.save()
                 
                 HistoricoPontos.objects.create(
                     cliente=cliente_obj,
                     venda=venda,
                     tipo_operacao='RESGATE',
-                    pontos=-pontos_resgatados,
+                    pontos=-float(pontos_resgatados),
                     descricao=f"Resgate na Venda #{venda.id}"
                 )
 
         # -------------------------------------------------------------
         # 2. GERAR NOVOS PONTOS
         # -------------------------------------------------------------
-        if pontos_resgatados == 0 and valor_desconto_pontos == 0:
+        if float(pontos_resgatados) == 0 and float(valor_desconto_pontos) == 0:
             
             valor_final_venda = float(dados_venda['valor_total'])
 
@@ -65,7 +75,6 @@ def processar_nova_venda(dados_venda, carrinho, status_venda, pontos_resgatados=
                 if cliente_obj:
                     config_cli = ConfiguracaoPontos.objects.filter(tipo_usuario='CLIENTE').first()
                     if config_cli:
-                        # ATUALIZAÇÃO: Multiplicando decimais usando float para considerar os centavos
                         novos_pontos = float(valor_final_venda) * float(config_cli.pontos_por_real)
                         if novos_pontos > 0:
                             cliente_obj.pontos = float(cliente_obj.pontos) + novos_pontos
@@ -84,7 +93,6 @@ def processar_nova_venda(dados_venda, carrinho, status_venda, pontos_resgatados=
                 if pintor_obj:
                     config_pin = ConfiguracaoPontos.objects.filter(tipo_usuario='PINTOR').first()
                     if config_pin:
-                        # ATUALIZAÇÃO: Mesma matemática fracionada aplicada ao Pintor
                         pontos_indicacao = float(valor_final_venda) * float(config_pin.pontos_por_real)
                         if pontos_indicacao > 0:
                             pintor_obj.pontos = float(pintor_obj.pontos) + pontos_indicacao
@@ -100,7 +108,6 @@ def processar_nova_venda(dados_venda, carrinho, status_venda, pontos_resgatados=
                             )
 
         return venda.id
-    
 
 def autorizar_cancelamento(venda_id, login_auth, senha_auth, motivo):
     autorizador = Usuarios.objects.filter(login=login_auth, senha=senha_auth).first()
@@ -114,6 +121,8 @@ def autorizar_cancelamento(venda_id, login_auth, senha_auth, motivo):
                     return False, "Esta venda já está cancelada."
                     
                 venda.status = 'CANCELADA'
+                # Zera a comissão caso a venda seja cancelada
+                venda.valor_comissao = Decimal('0.00') 
                 venda.save()
                 
                 historicos = HistoricoPontos.objects.filter(venda=venda)
@@ -158,7 +167,7 @@ def calcular_resgate_pontos(cliente_id):
     if not cliente:
         return {'pontos': 0, 'pontos_a_resgatar': 0, 'valor_desconto': 0.0, 'mensagem': 'Cliente não encontrado.'}
 
-    if cliente.pontos <= 0:
+    if float(cliente.pontos) <= 0:
         return {
             'pontos': 0,
             'pontos_a_resgatar': 0,
@@ -166,16 +175,15 @@ def calcular_resgate_pontos(cliente_id):
             'mensagem': 'Sem pontos acumulados.'
         }
 
-    # Busca a configuração para saber o divisor universal (ex: 100)
     config = ConfiguracaoPontos.objects.first()
-    divisor = config.divisor_resgate if config else 100
+    divisor = float(config.divisor_resgate) if config else 100.0
 
-    pontos_totais = cliente.pontos
+    pontos_totais = float(cliente.pontos)
     valor_desconto = pontos_totais / divisor
 
     return {
-        'pontos': pontos_totais,
-        'pontos_a_resgatar': pontos_totais,
+        'pontos': round(pontos_totais, 2),
+        'pontos_a_resgatar': round(pontos_totais, 2),
         'valor_desconto': round(valor_desconto, 2),
-        'mensagem': f'Disponível: {pontos_totais} pts (R$ {valor_desconto:.2f})'
+        'mensagem': f'Disponível: {pontos_totais:.2f} pts (R$ {valor_desconto:.2f})'
     }

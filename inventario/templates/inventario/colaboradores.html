@@ -23,6 +23,7 @@
                 <tr>
                     <td class="text-start"><strong>{{ c.login }}</strong></td>
                     <td>
+                        <!-- Identificação visual do perfil do colaborador -->
                         {% if c.perfil == 'Administrador' %}
                             <span class="badge bg-danger">Administrador</span>
                         {% else %}
@@ -31,7 +32,12 @@
                     </td>
                     <td>{{ c.comissao|floatformat:2 }}%</td>
                     <td>R$ {{ c.total_vendido|floatformat:2 }}</td>
-                    <td class="fw-bold text-success fs-5">R$ {{ c.comissao_a_pagar|floatformat:2 }}</td>
+                    <td>
+                        <!-- ATUALIZAÇÃO: Botão interativo que leva ao extrato detalhado do vendedor -->
+                        <a href="{% url 'tela_extrato_comissoes' %}?vendedor={{ c.login }}" class="btn btn-sm text-white fw-bold shadow-sm" style="background-color: #00C853; border-radius: 20px; padding: 5px 15px;" title="Ver Extrato Detalhado">
+                            💰 R$ {{ c.comissao_a_pagar|floatformat:2 }}
+                        </a>
+                    </td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary" title="Editar Colaborador" onclick="editarRH('{{c.id}}', '{{c.login}}', '{{c.perfil}}', '{{c.comissao}}')">
                             ✏️ Editar
@@ -44,6 +50,7 @@
     </div>
 </div>
 
+<!-- Modal para Adicionar/Editar Colaborador -->
 <div class="modal fade" id="modalRH" tabindex="-1">
     <div class="modal-dialog">
         <form class="modal-content border-0 shadow-lg" method="POST" action="{% url 'salvar_colaborador' %}">
@@ -92,11 +99,12 @@
 <script>
     let modalColaborador;
 
-    // Aguarda o navegador carregar o Bootstrap primeiro, evitando o erro "undefined"
+    // Inicializa o modal do Bootstrap
     document.addEventListener("DOMContentLoaded", function() {
         modalColaborador = new bootstrap.Modal(document.getElementById('modalRH'));
     });
 
+    // Limpa os campos para criar um novo colaborador
     function abrirModalRH() {
         document.getElementById('rh_id').value = "";
         document.getElementById('rh_login').value = "";
@@ -105,15 +113,14 @@
         modalColaborador.show();
     }
 
+    // Preenche os campos do modal com os dados do colaborador selecionado para edição
     function editarRH(id, login, perfil, comis) {
         document.getElementById('rh_id').value = id;
         document.getElementById('rh_login').value = login;
 
-        // Garante que o select do perfil mude para o valor correto
         let selectPerfil = document.getElementById('rh_perfil');
         if (perfil) { selectPerfil.value = perfil; }
 
-        // Proteção extra: Limpa a vírgula para não dar erro no input number
         let valorComissao = comis ? String(comis).replace(',', '.') : "0";
         document.getElementById('rh_comis').value = valorComissao;
 

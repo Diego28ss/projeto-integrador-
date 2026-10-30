@@ -1,0 +1,37 @@
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe"><NFe xmlns="http://www.portalfiscal.inf.br/nfe"><infNFe Id="NFe35260636848840000156550010000000011607614824" versao="4.00"><ide><cUF>35</cUF><cNF>60761482</cNF><natOp>Venda de mercadoria</natOp><mod>55</mod><serie>1</serie><nNF>1</nNF><dhEmi>2026-06-10T10:52:25-03:00</dhEmi><tpNF>1</tpNF><idDest>1</idDest><cMunFG>3550308</cMunFG><tpImp>1</tpImp><tpEmis>1</tpEmis><cDV>4</cDV><tpAmb>2</tpAmb><finNFe>1</finNFe><indFinal>1</indFinal><indPres>1</indPres><indIntermed>0</indIntermed><procEmi>0</procEmi><verProc>0.1.0</verProc></ide><emit><CNPJ>36848840000156</CNPJ><xNome>36.848.840 JACSON SANTOS CORREIA</xNome><xFant>JB TINTAS</xFant><enderEmit><xLgr>Rua Caiçara do Rio do Vento</xLgr><nro>617</nro><xCpl>LOJA DE TINTAS JB TINTAS</xCpl><xBairro>Parque Císper</xBairro><cMun>3550308</cMun><xMun>São Paulo</xMun><UF>SP</UF><CEP>03817000</CEP><cPais>1058</cPais><xPais>Brasil</xPais></enderEmit><IE>128791388115</IE><CRT>4</CRT></emit><dest><CPF>48593111831</CPF><xNome>NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL</xNome><enderDest><xLgr>Rua Sebastião Muniz</xLgr><nro>213</nro><xBairro>Jardim Ponte Rasa</xBairro><cMun>3550308</cMun><xMun>São Paulo</xMun><UF>SP</UF><CEP>03894100</CEP></enderDest><indIEDest>9</indIEDest></dest><det nItem="1"><prod><cProd>2532</cProd><cEAN>SEM GTIN</cEAN><xProd>XADREZ VERMELHO 50ML</xProd><NCM>32091010</NCM><CFOP>5102</CFOP><uCom>UN</uCom><qCom>1.0000</qCom><vUnCom>7.00</vUnCom><vProd>7.00</vProd><cEANTrib>SEM GTIN</cEANTrib><uTrib>UN</uTrib><qTrib>1.0000</qTrib><vUnTrib>7.00</vUnTrib><indTot>1</indTot></prod><imposto><vTotTrib>2.20</vTotTrib><ICMS><ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102></ICMS><PIS><PISNT><CST>07</CST></PISNT></PIS><COFINS><COFINSNT><CST>07</CST></COFINSNT></COFINS></imposto></det><det nItem="2"><prod><cProd>2620</cProd><cEAN>SEM GTIN</cEAN><xProd>CORTEX ECON. BRANCO 3,6L</xProd><NCM>32091010</NCM><CFOP>5102</CFOP><uCom>UN</uCom><qCom>1.0000</qCom><vUnCom>59.99</vUnCom><vProd>59.99</vProd><cEANTrib>SEM GTIN</cEANTrib><uTrib>UN</uTrib><qTrib>1.0000</qTrib><vUnTrib>59.99</vUnTrib><indTot>1</indTot></prod><imposto><vTotTrib>18.87</vTotTrib><ICMS><ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102></ICMS><PIS><PISNT><CST>07</CST></PISNT></PIS><COFINS><COFINSNT><CST>07</CST></COFINSNT></COFINS></imposto></det><total><ICMSTot><vBC>0</vBC><vICMS>0</vICMS><vICMSDeson>0</vICMSDeson><vFCP>0</vFCP><vBCST>0</vBCST><vST>0</vST><vFCPST>0</vFCPST><vFCPSTRet>0</vFCPSTRet><vProd>66.99</vProd><vFrete>0</vFrete><vSeg>0</vSeg><vDesc>0</vDesc><vII>0</vII><vIPI>0</vIPI><vIPIDevol>0</vIPIDevol><vPIS>0</vPIS><vCOFINS>0</vCOFINS><vOutro>0</vOutro><vNF>66.99</vNF><vTotTrib>21.07</vTotTrib></ICMSTot></total><transp><modFrete>9</modFrete></transp><pag><detPag><tPag>01</tPag><vPag>66.99</vPag></detPag></pag><infAdic><infCpl>Trib. aprox. R$: 9,01 Federal,  12,06 Estadual Fonte: IBPT/empresometro.com.br 92589A</infCpl></infAdic><infRespTec><CNPJ>07504505000132</CNPJ><xContato>Ricardo Acras</xContato><email>contato@focusnfe.com.br</email><fone>41991820810</fone></infRespTec></infNFe><Signature xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" /><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" /><Reference URI="#NFe35260636848840000156550010000000011607614824"><Transforms><Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" /><Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" /></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" /><DigestValue>QkRjSHKcWNmluKW87ttvlG8vjnE=</DigestValue></Reference></SignedInfo><SignatureValue>VqxVRotG5QNwcILvlgYMBjSVGRpACXzWpfFmNIWnIj5MlrU5tmKkWFso4sOOKe6v8OqdAOnlbRpj
+WmpSMhJfyMD4iVZnhQ19+dBs7wyoVCMKnkLqWNsu3J1B8DxEwX6pYAEApfybrSfVKTeil/zQYTMV
+vR76PYx10y+LSlZc2WxEEDlouunVBBFlNEvonih3aMw8H9ju8OcKQMwPvCdT3OCSSEyhe/dtZn+3
+VUqAY66TLB33GV5Ih1+2qpWteaGueVSti/TwoBGg8NRFCr1Fm1tcPR9wmsc/AWAjIjnQrFwufeXa
+JL6HQ4Ms2baHRHi+j9bywa3TT7Xyer4iUK6zkw==</SignatureValue><KeyInfo><X509Data><X509Certificate>MIIHSTCCBTGgAwIBAgIIVCIlEQNL5VowDQYJKoZIhvcNAQELBQAwWTELMAkGA1UEBhMCQlIxEzAR
+BgNVBAoTCklDUC1CcmFzaWwxFTATBgNVBAsTDEFDIFNPTFVUSSB2NTEeMBwGA1UEAxMVQUMgU09M
+VVRJIE11bHRpcGxhIHY1MB4XDTI1MTEwMzE1MzgwMFoXDTI2MTEwMzE1MzgwMFowge0xCzAJBgNV
+BAYTAkJSMRMwEQYDVQQKEwpJQ1AtQnJhc2lsMQswCQYDVQQIEwJTUDESMBAGA1UEBxMJU2FvIFBh
+dWxvMR4wHAYDVQQLExVBQyBTT0xVVEkgTXVsdGlwbGEgdjUxFzAVBgNVBAsTDjM5MTU3MDI3MDAw
+MTI4MRkwFwYDVQQLExBWaWRlb2NvbmZlcmVuY2lhMRowGAYDVQQLExFDZXJ0aWZpY2FkbyBQSiBB
+MTE4MDYGA1UEAxMvMzYuODQ4Ljg0MCBKQUNTT04gU0FOVE9TIENPUlJFSUE6MzY4NDg4NDAwMDAx
+NTYwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCBSF3uLhLztivpSE95rNO3YMWaFQ/U
+hKAUXuLJhm/l5JCBnifxnvMZgtV+CRdk8p6BqpGh4Lcw6YYecj6Zku0XYSye0J9e+4hMZXp4e3hW
+JHKuNgrfgOqHUVJ48VWuAPDrAljTFJRyNQFjXFpPlcxeGGuVxSPq3s04bHAlfHSdLPOfaottV8KZ
+yJaoHz+RZgOi8GG+ed+g7RjcjxZc27Vig/9G2C9tdiLaGa6dp7C6cZfZRKdGRUrWcLFdNLWEKhDf
+QmKfuKtwIsYsktyZp+KZ3NnR/sWo/R01sqNSCtxGp2OoVG8bNvN1CVj01YJwi1UTsgDoIntzy8TH
+g9CcR7frAgMBAAGjggJ+MIICejAJBgNVHRMEAjAAMB8GA1UdIwQYMBaAFMVS7SWACd+cgsifR8bd
+tF8x3bmxMFQGCCsGAQUFBwEBBEgwRjBEBggrBgEFBQcwAoY4aHR0cDovL2NjZC5hY3NvbHV0aS5j
+b20uYnIvbGNyL2FjLXNvbHV0aS1tdWx0aXBsYS12NS5wN2IwgbkGA1UdEQSBsTCBroEcamFjc29u
+LnNhbnRvcy44NkBob3RtYWlsLmNvbaAgBgVgTAEDAqAXExVKQUNTT04gU0FOVE9TIENPUlJFSUGg
+GQYFYEwBAwOgEBMOMzY4NDg4NDAwMDAxNTagOAYFYEwBAwSgLxMtMDUwMjE5ODYzNDMwOTg1Nzgx
+NzAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwoBcGBWBMAQMHoA4TDDAwMDAwMDAwMDAwMDBdBgNV
+HSAEVjBUMFIGBmBMAQIBJjBIMEYGCCsGAQUFBwIBFjpodHRwOi8vY2NkLmFjc29sdXRpLmNvbS5i
+ci9kb2NzL2RwYy1hYy1zb2x1dGktbXVsdGlwbGEucGRmMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggr
+BgEFBQcDBDCBjAYDVR0fBIGEMIGBMD6gPKA6hjhodHRwOi8vY2NkLmFjc29sdXRpLmNvbS5ici9s
+Y3IvYWMtc29sdXRpLW11bHRpcGxhLXY1LmNybDA/oD2gO4Y5aHR0cDovL2NjZDIuYWNzb2x1dGku
+Y29tLmJyL2xjci9hYy1zb2x1dGktbXVsdGlwbGEtdjUuY3JsMB0GA1UdDgQWBBRXVJx6p2zQM8GN
+amRszem3UdRMnTAOBgNVHQ8BAf8EBAMCBeAwDQYJKoZIhvcNAQELBQADggIBAJFGEsXnlhJcjZ4c
+fWH4vDVSuKBfvhLq1RRO8YOeOv5CA6kFTgPo1lfKQMJTuNaAsqACf80a4uLw4r1ErLYG8CulFM7W
+Le9SteHPKN0H5Qw5c/bodfqI2Zo8diXXDKNIfkmPki83/uqy0zS+ASO5FgruZf6XU7Gf4pvyPRbf
+qjBjTN9bEEHAr5BDwkj9vfYbw3PAGIGAuIhVa09CNsjHfsFgLPagIFEMHRBvGTjKl5vyzgSNdclP
+9pBzTosa4hDnnoVt9cOrySdHp+Rb8NjDR7URKLBkaysnPCIrINvTj5/njvdI9pGlSkuvVCa0QFCc
+AEymSZ4eGuig8jvWQw761w6z0YadBcdeAeTIPXcWmMJrQktalqmP7q4WPtss4bszeQh2oXDGil02
+ceRkDxL7lnh5zTZqZawTtSZfCt+duVHg+kTRE6Moxnr10RbJaawWADbNN5EQoFFZsMooGbX+itR7
+n1id2WmqS/2QvyWTsR5+ZjPswCEvldANo4Jmd94uukffpCIDSYH/4kyESH68q6XS8UoTAqeDSv5N
+0l1P+vTqqoMD2w5AeCl5UlZXITkm07pL/bXkAnmSKeVpRuvCTYBvGZMl/lYpXioPszMT836AE5zi
+1fK04YHvW/dM5xZkuiyMUtvYlb3zEgkOkEk3rHNCvLQLhH+K5xJq/mi+7Siw</X509Certificate></X509Data></KeyInfo></Signature></NFe><protNFe versao="4.00"><infProt Id="Id135260005818154"><tpAmb>2</tpAmb><verAplic>SP_NFE_PL009_V4</verAplic><chNFe>35260636848840000156550010000000011607614824</chNFe><dhRecbto>2026-06-10T10:52:29-03:00</dhRecbto><nProt>135260005818154</nProt><digVal>QkRjSHKcWNmluKW87ttvlG8vjnE=</digVal><cStat>100</cStat><xMotivo>Autorizado o uso da NF-e</xMotivo></infProt></protNFe></nfeProc>

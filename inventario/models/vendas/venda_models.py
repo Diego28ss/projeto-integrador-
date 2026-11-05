@@ -47,4 +47,31 @@ class ConfiguracaoPontos(models.Model):
 
     def __str__(self):
         return f"Regra {self.tipo_usuario}: Ganha {self.pontos_por_real}pts a cada R$ 1,00"
+
+
+# ==========================================
+# NOVO MODELO: Trilha de Auditoria e Segurança
+# ==========================================
+class LogAuditoria(models.Model):
+    """
+    Modelo de segurança que grava ações críticas (como o cancelamento de cupons).
+    O objetivo é impedir fraudes de caixa e rastrear a autoria de exclusões.
+    """
+    # A venda que foi afetada (CASCADE: se a venda sumir do banco, o log some, embora vendas não devam ser apagadas)
+    venda = models.ForeignKey(Vendas, on_delete=models.CASCADE, related_name='logs_auditoria')
+    
+    # Usuário que executou a ação (capturado via session)
+    usuario = models.CharField(max_length=100)
+    
+    # Quando ocorreu o cancelamento
+    data_acao = models.DateTimeField(default=timezone.now)
+    
+    # Motivo obrigatório preenchido no pop-up de cancelamento do Front-end
+    motivo = models.TextField()
+    
+    # (Opcional) Qual ação foi feita. Deixamos flexível caso no futuro auditemos "Edição" também.
+    acao_realizada = models.CharField(max_length=50, default='CANCELAMENTO')
+
+    def __str__(self):
+        return f"Venda {self.venda.id} | {self.acao_realizada} por {self.usuario}"
     

@@ -63,6 +63,10 @@ urlpatterns = [
     path('gerencia/relatoriospainel/', relatorios_views.tela_relatorios_painel, name='tela_relatorios_painel'),
     path('gerencia/relatoriospainel/relatorios/', relatorios_views.tela_relatorios, name='tela_relatorios'),
     path('gerencia/relatoriospainel/extrato/', relatorios_views.tela_extrato_comissoes, name='tela_extrato_comissoes'),
+    
+    # NOVO: Rota para a Trilha de Auditoria (Apenas Gerentes)
+    path('gerencia/relatoriospainel/auditoria-vendas/', relatorios_views.tela_auditoria_vendas, name='tela_auditoria_vendas'),
+    
     path('venda/cupom/<int:id>/', relatorios_views.imprimir_cupom, name='imprimir_cupom'),
     path('gerencia/vendas/cancelar/', relatorios_views.cancelar_venda, name='cancelar_venda'),
     path('venda/cupom-a4/<int:id>/', relatorios_views.imprimir_cupom_a4, name='imprimir_cupom_a4'),

@@ -1,11 +1,12 @@
 import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from inventario.models.vendas.venda_models import Vendas
+from inventario.models.vendas.venda_models import Vendas, LogAuditoria
 from inventario.models.usuarios.usuario_models import Usuarios
 from inventario.services.vendas import dashboard_services
 from datetime import datetime
 from django.utils import timezone
+from django.db import transaction
 
 def tela_relatorios(request):
     if 'usuario_logado' not in request.session:
@@ -78,6 +79,7 @@ def imprimir_cupom_a4(request, id):
     }
     return render(request, 'inventario/cupom_a4.html', contexto)
 
+@transaction.atomic
 def cancelar_venda(request):
     if request.method == 'POST':
         venda_id = request.POST.get('venda_id')
@@ -92,7 +94,16 @@ def cancelar_venda(request):
                 venda = Vendas.objects.get(id=venda_id)
                 venda.status = 'CANCELADA'
                 venda.save()
-                messages.success(request, f"Venda #{venda_id} cancelada por {autorizador.login}. Motivo: {motivo}")
+                
+                # NOVO: Injeção do registro de Auditoria no banco de dados
+                LogAuditoria.objects.create(
+                    venda=venda,
+                    usuario=autorizador.login,
+                    motivo=motivo,
+                    acao_realizada='CANCELAMENTO'
+                )
+                
+                messages.success(request, f"Venda #{venda_id} cancelada por {autorizador.login}. Motivo registrado na Auditoria.")
             except Exception as e:
                 messages.error(request, f"Erro ao cancelar o documento: {e}")
         else:
@@ -184,3 +195,21 @@ def tela_relatorios_painel(request):
         return redirect('login')
     
     return render(request, 'inventario/relatorios_painel.html')
+
+# ==========================================
+# NOVA VIEW: Auditoria de Vendas (Item 3.2)
+# ==========================================
+def tela_auditoria_vendas(request):
+    # Trava básica: garante apenas que a pessoa está logada no sistema
+    if 'usuario_logado' not in request.session:
+        return redirect('login')
+        
+    # Busca todos os logs de cancelamento do banco, ordenados do mais recente ao mais antigo
+    logs = LogAuditoria.objects.select_related('venda').all().order_by('-data_acao')
+    
+    context = {
+        'logs': logs
+    }
+    
+    return render(request, 'inventario/auditoria_vendas.html', context)
+

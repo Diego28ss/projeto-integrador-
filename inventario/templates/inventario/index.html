@@ -1,6 +1,78 @@
 {% extends 'inventario/base.html' %}
 
 {% block content %}
+<!-- Bloco do Dashboard de Gráficos -->
+<div class="row my-4">
+    <div class="col-md-8 mb-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white font-weight-bold">
+                📈 Faturamento dos Últimos 7 Dias (R$)
+            </div>
+            <div class="card-body">
+                <canvas id="graficoFaturamento" style="max-height: 280px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white font-weight-bold">
+                🎨 Categorias Mais Vendidas
+            </div>
+            <div class="card-body">
+                <canvas id="graficoCategorias" style="max-height: 280px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const ctxFaturamento = document.getElementById('graficoFaturamento').getContext('2d');
+        new Chart(ctxFaturamento, {
+            type: 'bar',
+            data: {
+                labels: ['Sex', 'Sáb', 'Seg', 'Ter', 'Qua', 'Qui', 'Hoje'],
+                datasets: [{
+                    label: 'Vendas Brutas (R$)',
+                    data: [2150.00, 3420.50, 1890.00, 2400.00, 3100.20, 2850.00, 3940.00],
+                    backgroundColor: 'rgba(220, 53, 69, 0.75)',
+                    borderColor: 'rgba(220, 53, 69, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return 'R$ ' + value; }
+                        }
+                    }
+                }
+            }
+        });
+
+        const ctxCategorias = document.getElementById('graficoCategorias').getContext('2d');
+        new Chart(ctxCategorias, {
+            type: 'doughnut',
+            data: {
+                labels: ['Tintas Acrílicas', 'Esmaltes', 'Solventes', 'Acessórios'],
+                datasets: [{
+                    data: [45, 25, 18, 12],
+                    backgroundColor: ['#dc3545', '#ffc107', '#17a2b8', '#6c757d']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    });
+</script>
 <div class="row g-4 mt-2">
     <div class="col-md-4">
         <a href="{% url 'tela_pdv' %}" class="text-decoration-none">

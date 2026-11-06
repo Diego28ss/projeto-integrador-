@@ -4,6 +4,8 @@ from inventario.models.vendas.venda_models import Vendas, ConfiguracaoPontos
 from inventario.models.produtos.produto_models import Produtos
 from inventario.models.clientes.cliente_models import Clientes, HistoricoPontos
 from inventario.models.usuarios.usuario_models import Usuarios
+# NOVO: Importando a tabela do caixa para somar as vendas na gaveta
+from inventario.models.vendas.caixa_models import CaixaDiario
 
 def processar_nova_venda(dados_venda, carrinho, status_venda, pontos_resgatados=0.0, valor_desconto_pontos=0.00):
     with transaction.atomic():
@@ -11,22 +13,56 @@ def processar_nova_venda(dados_venda, carrinho, status_venda, pontos_resgatados=
         indicante_id = dados_venda.get('indicante_id')
         vendedor_login = dados_venda.get('vendedor')
         
+        # Recebe a forma de pagamento selecionada no menu suspenso do front-end
+        forma_pagamento = dados_venda.get('forma_pagamento', 'DINHEIRO')
+        
         valor_total = Decimal(str(dados_venda['valor_total']))
 
         # FASE 2: Calcular a comissão do vendedor sobre o valor líquido
         valor_comissao = Decimal('0.00')
-        if vendedor_login and status_venda == 'VENDA':
+        vendedor_obj = None
+        if vendedor_login:
             vendedor_obj = Usuarios.objects.filter(login=vendedor_login).first()
-            if vendedor_obj:
+            if vendedor_obj and status_venda == 'VENDA':
                 valor_comissao = vendedor_obj.calcular_comissao(valor_total)
 
+        # FASE 4: INTEGRAÇÃO COM O CAIXA (SOMA DA VENDA NA GAVETA)
+        caixa_aberto = None
+        if status_venda == 'VENDA' and vendedor_obj:
+            # Busca o caixa ABERTO deste vendedor específico
+            caixa_aberto = CaixaDiario.objects.select_for_update().filter(
+                operador=vendedor_obj, 
+                status='ABERTO'
+            ).first()
+            
+            if not caixa_aberto:
+                # Trava de segurança: impede vender sem abrir caixa
+                raise ValueError(f"O vendedor {vendedor_login} não possui um Caixa Aberto no momento.")
+            
+            # Subtrai do total a ser creditado no caixa o que foi pago com pontos de fidelidade
+            valor_real_pago = valor_total - Decimal(str(valor_desconto_pontos))
+            
+            # Soma o valor líquido no agregador correto baseado no meio de pagamento escolhido
+            if forma_pagamento == 'DINHEIRO':
+                caixa_aberto.total_dinheiro += valor_real_pago
+            elif forma_pagamento == 'PIX':
+                caixa_aberto.total_pix += valor_real_pago
+            elif forma_pagamento == 'DEBITO':
+                caixa_aberto.total_debito += valor_real_pago
+            elif forma_pagamento == 'CREDITO':
+                caixa_aberto.total_credito += valor_real_pago
+                
+            caixa_aberto.save()
+
+        # Grava a venda com a nova forma de pagamento
         venda = Vendas.objects.create(
             valor_total=valor_total,
             valor_desconto=dados_venda['valor_desconto'],
             pontos_resgatados=pontos_resgatados,
             valor_desconto_pontos=valor_desconto_pontos,
             vendedor=vendedor_login,
-            valor_comissao=valor_comissao, # Grava o valor da comissão na venda
+            valor_comissao=valor_comissao, 
+            forma_pagamento=forma_pagamento, # FASE 4
             cliente_id=cliente_id,
             indicante_id=indicante_id,
             status=status_venda,
@@ -46,9 +82,7 @@ def processar_nova_venda(dados_venda, carrinho, status_venda, pontos_resgatados=
                     produto.estoque_atual -= p_qtd
                     produto.save()
 
-        # -------------------------------------------------------------
         # 1. PROCESSAR RESGATE DE PONTOS
-        # -------------------------------------------------------------
         if cliente_id and float(pontos_resgatados) > 0:
             cliente_obj = Clientes.objects.select_for_update().filter(id=cliente_id).first()
             if cliente_obj and float(cliente_obj.pontos) >= float(pontos_resgatados):
@@ -63,9 +97,7 @@ def processar_nova_venda(dados_venda, carrinho, status_venda, pontos_resgatados=
                     descricao=f"Resgate na Venda #{venda.id}"
                 )
 
-        # -------------------------------------------------------------
         # 2. GERAR NOVOS PONTOS
-        # -------------------------------------------------------------
         if float(pontos_resgatados) == 0 and float(valor_desconto_pontos) == 0:
             
             valor_final_venda = float(dados_venda['valor_total'])
@@ -119,9 +151,27 @@ def autorizar_cancelamento(venda_id, login_auth, senha_auth, motivo):
                 
                 if venda.status == 'CANCELADA':
                     return False, "Esta venda já está cancelada."
+                
+                # FASE 4: INTEGRAÇÃO COM O CAIXA (ESTORNO NO CANCELAMENTO)
+                vendedor_obj = Usuarios.objects.filter(login=venda.vendedor).first()
+                if vendedor_obj:
+                    caixa_aberto = CaixaDiario.objects.select_for_update().filter(
+                        operador=vendedor_obj, status='ABERTO'
+                    ).first()
+                    
+                    if caixa_aberto:
+                        valor_real_pago = venda.valor_total - venda.valor_desconto_pontos
+                        if venda.forma_pagamento == 'DINHEIRO':
+                            caixa_aberto.total_dinheiro -= valor_real_pago
+                        elif venda.forma_pagamento == 'PIX':
+                            caixa_aberto.total_pix -= valor_real_pago
+                        elif venda.forma_pagamento == 'DEBITO':
+                            caixa_aberto.total_debito -= valor_real_pago
+                        elif venda.forma_pagamento == 'CREDITO':
+                            caixa_aberto.total_credito -= valor_real_pago
+                        caixa_aberto.save()
                     
                 venda.status = 'CANCELADA'
-                # Zera a comissão caso a venda seja cancelada
                 venda.valor_comissao = Decimal('0.00') 
                 venda.save()
                 
@@ -155,6 +205,7 @@ def autorizar_cancelamento(venda_id, login_auth, senha_auth, motivo):
                     
             return True, f"Venda #{venda_id} cancelada por {autorizador.login}. Motivo: {motivo}"
         except Exception as e:
+            # Retorna o erro exato para não quebrar silenciosamente (ex: "O vendedor x não possui caixa")
             return False, f"Erro ao cancelar a venda: {str(e)}"
 
     return False, "Cancelamento Negado: Login ou Senha do autorizador incorretos."

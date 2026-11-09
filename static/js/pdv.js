@@ -253,7 +253,6 @@ function atualizarResumoCaixa() {
     calcularTroco();
 }
 
-
 function limparCarrinho() {
     if(confirm("Deseja realmente limpar toda a operação?")) {
         carrinho = [];
@@ -270,6 +269,13 @@ function limparCarrinho() {
         document.getElementById('inputValorRecebido').value = '';
         document.getElementById('inputTroco').value = 'R$ 0,00';
         
+        let selectForma = document.getElementById('formaPagamento');
+        if (selectForma) selectForma.value = 'DINHEIRO';
+        let blocoParcelas = document.getElementById('blocoParcelas');
+        if (blocoParcelas) blocoParcelas.style.display = 'none';
+        let selectParcelas = document.getElementById('selectParcelas');
+        if (selectParcelas) selectParcelas.value = '1';
+
         let btnVenda = document.getElementById('btnVenda');
         if(btnVenda) {
             btnVenda.disabled = false;
@@ -280,7 +286,6 @@ function limparCarrinho() {
         atualizarTela();
     }
 }
-
 
 function verificarPontos() {
     let clienteId = document.getElementById('selectCliente').value;
@@ -332,7 +337,6 @@ function verificarPontos() {
     }
 }
 
-
 function aplicarDescontoPontos(pontos, valorDesconto) {
     let totalComDescontosItens = carrinho.reduce((s, i) => s + (i.preco_desconto * i.qtd), 0);
     if (totalComDescontosItens <= 0) return alert("Adicione produtos no carrinho antes de aplicar o desconto!");
@@ -359,7 +363,6 @@ function aplicarDescontoPontos(pontos, valorDesconto) {
     }
 }
 
-
 function finalizarOperacao(statusSelecionado) {
     if (carrinho.length === 0) return alert("O carrinho está vazio!");
     
@@ -371,7 +374,25 @@ function finalizarOperacao(statusSelecionado) {
 
     let subtotalComDescontosItens = carrinho.reduce((s, i) => s + (i.preco_desconto * i.qtd), 0);
     let valorFinal = parseFloat(document.getElementById('inputValorFinal').value) || 0;
-    
+
+    // Coleta e validação da forma de pagamento e parcelamento
+    let selectPagamento = document.getElementById('formaPagamento');
+    let formaPagamento = selectPagamento ? selectPagamento.value : 'DINHEIRO';
+    let parcelas = 1;
+
+    if (formaPagamento === 'CREDITO') {
+        let selectParcelas = document.getElementById('selectParcelas');
+        parcelas = selectParcelas ? (parseInt(selectParcelas.value) || 1) : 1;
+    }
+
+    // Validação de pagamento em dinheiro
+    if (statusSelecionado === 'VENDA' && formaPagamento === 'DINHEIRO') {
+        let valorRecebido = parseFloat(document.getElementById('inputValorRecebido').value) || 0;
+        if (valorRecebido < valorFinal) {
+            return alert("⚠️ O valor recebido em dinheiro (R$ " + valorRecebido.toFixed(2).replace('.', ',') + ") é insuficiente para cobrir o total da venda (R$ " + valorFinal.toFixed(2).replace('.', ',') + ")!");
+        }
+    }
+
     let descontoGlobalAdicional = subtotalComDescontosItens - valorFinal;
 
     let pacote = {
@@ -383,6 +404,8 @@ function finalizarOperacao(statusSelecionado) {
         desconto: descontoGlobalAdicional > 0 ? descontoGlobalAdicional : 0,
         pontos_resgatados: pointsToRedeem,
         valor_desconto_pontos: valorDescontoPontosAplicado,
+        forma_pagamento: formaPagamento,
+        parcelas: parcelas,
         carrinho: carrinho
     };
 

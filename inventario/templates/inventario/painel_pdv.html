@@ -1,0 +1,73 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-danger text-white text-center py-3">
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-cash-stack me-2"></i> Central do Ponto de Venda (PDV)</h4>
+                </div>
+                <div class="card-body p-4 text-center">
+
+                    {% if caixa_aberto %}
+                        <!-- ESTADO: CAIXA ABERTO -->
+                        <div class="alert alert-success d-inline-block px-4 py-2 mb-4 shadow-sm rounded-pill">
+                            <i class="bi bi-check-circle-fill me-2 fs-5 align-middle"></i>
+                            <strong class="fs-6 align-middle">Caixa Aberto e Operacional</strong>
+                        </div>
+
+                        <div class="card bg-light border-0 mb-4 p-3 text-start">
+                            <h6 class="text-danger fw-bold border-bottom pb-2 mb-3">Informações do Turno Ativo</h6>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <span class="text-muted d-block small">Operador Responsável:</span>
+                                    <strong class="text-dark">{{ caixa.operador|default:request.session.usuario_logado|upper }}</strong>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="text-muted d-block small">Fundo Inicial (Lastro):</span>
+                                    <strong class="text-success">{{ caixa.fundo_inicial|default:"R$ 0,00" }}</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'tela_pdv' %}" class="btn btn-success btn-lg fw-bold py-3 shadow-sm">
+                                <i class="bi bi-cart-check-fill me-2"></i> Entrar na Tela de Vendas (PDV)
+                            </a>
+                            <a href="{% url 'painel_principal' %}" class="btn btn-outline-secondary mt-2">
+                                <i class="bi bi-arrow-left me-1"></i> Voltar ao Menu Principal
+                            </a>
+                        </div>
+
+                    {% else %}
+                        <!-- ESTADO: CAIXA FECHADO -->
+                        <div class="alert alert-warning d-inline-block px-4 py-2 mb-4 shadow-sm rounded-pill text-dark">
+                            <i class="bi bi-exclamation-triangle-fill me-2 fs-5 align-middle text-warning"></i>
+                            <strong class="fs-6 align-middle">Caixa Fechado</strong>
+                        </div>
+
+                        <div class="p-4 mb-4 rounded bg-light border">
+                            <i class="bi bi-lock-fill text-secondary" style="font-size: 3rem;"></i>
+                            <h5 class="fw-bold mt-3 text-dark">Acesso Restrito ao Balcão</h5>
+                            <p class="text-muted mb-0 small">
+                                O terminal de vendas encontra-se bloqueado. Para iniciar as vendas e emitir cupões, é obrigatória a conferência e abertura de turno com o fundo de troco.
+                            </p>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <a href="/painelpdv/abertura/" class="btn btn-danger btn-lg fw-bold py-3 shadow-sm">
+                                <i class="bi bi-unlock-fill me-2"></i> Abrir Caixa do Turno
+                            </a>
+                            <a href="{% url 'painel_principal' %}" class="btn btn-outline-secondary mt-2">
+                                <i class="bi bi-arrow-left me-1"></i> Voltar ao Menu Principal
+                            </a>
+                        </div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -73,13 +73,19 @@
         });
     });
 </script>
+
 <div class="row g-4 mt-2">
     <div class="col-md-4">
-        <a href="{% url 'tela_pdv' %}" class="text-decoration-none">
+        <!-- Rota centralizada no novo Hub de Caixa e PDV -->
+        <a href="/painelpdv/" class="text-decoration-none">
             <div class="card shadow-sm border-0 h-100 text-white text-center p-4" style="background-color: #0d6efd;">
                 <div class="fs-1 mb-3">💰</div>
                 <h4 class="fw-bold text-white">Frente de Caixa</h4>
-                <p class="small text-white opacity-75 mb-0">Vendas rápidas, orçamentos e cupons.</p>
+                {% if caixa_aberto %}
+                <p class="small text-white opacity-75 mb-0"><span class="badge bg-success me-1">Aberto</span> Acessar PDV e Vendas</p>
+                {% else %}
+                <p class="small text-white opacity-75 mb-0"><span class="badge bg-warning text-dark me-1">Caixa</span> Abertura e Vendas</p>
+                {% endif %}
             </div>
         </a>
     </div>

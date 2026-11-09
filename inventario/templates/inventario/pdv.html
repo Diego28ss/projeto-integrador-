@@ -2,6 +2,19 @@
 {% load static %}
 
 {% block content %}
+<!-- BARRA SUPERIOR DE GESTÃO DO CAIXA -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-warning fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalSangria">
+            <i class="fas fa-hand-holding-usd"></i> Retirar Dinheiro (Sangria)
+        </button>
+        <button type="button" class="btn btn-outline-danger fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalFecharCaixa">
+            <i class="fas fa-door-closed"></i> Fechar Caixa
+        </button>
+    </div>
+    <span class="badge bg-success px-3 py-2 fs-6 shadow-sm"><i class="fas fa-cash-register me-1"></i> Caixa Aberto</span>
+</div>
+
 <div class="row g-3">
     <div class="col-md-8">
         <div class="card shadow-sm border-0 mb-3">
@@ -98,12 +111,42 @@
             <div class="row g-2 mb-3 mt-2">
                 <div class="col-8">
                     <label class="form-label small fw-bold text-dark">VALOR FINAL</label>
-                    <input type="number" id="inputValorFinal" class="form-control form-control-lg fw-bold text-center fs-3 border-secondary shadow-sm" step="0.01" oninput="aplicarDescontoGlobalPorValor()">
+                    <input type="number" id="inputValorFinal" class="form-control form-control-lg fw-bold text-center fs-3 border-secondary shadow-sm" step="0.01" oninput="aplicarDescontoGlobalPorValor(); sincronizarPagamentoAutomatico();">
                 </div>
                 <div class="col-4">
                     <label class="form-label small fw-bold text-dark">Desc. (%)</label>
-                    <input type="number" id="inputDescontoPerc" class="form-control form-control-lg fw-bold text-center fs-3 border-secondary shadow-sm" step="0.1" oninput="aplicarDescontoGlobalPorPorcentagem()">
+                    <input type="number" id="inputDescontoPerc" class="form-control form-control-lg fw-bold text-center fs-3 border-secondary shadow-sm" step="0.1" oninput="aplicarDescontoGlobalPorPorcentagem(); sincronizarPagamentoAutomatico();">
                 </div>
+            </div>
+
+            <!-- FORMA DE PAGAMENTO DINÂMICA -->
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-dark">💳 Forma de Pagamento</label>
+                <select id="formaPagamento" class="form-select border-secondary shadow-sm fw-bold" onchange="tratarMudancaPagamento()">
+                    <option value="DINHEIRO">Dinheiro</option>
+                    <option value="PIX">PIX</option>
+                    <option value="DEBITO">Cartão de Débito</option>
+                    <option value="CREDITO">Cartão de Crédito</option>
+                </select>
+            </div>
+
+            <!-- PARCELAMENTO CRÉDITO (Oculto por padrão) -->
+            <div class="mb-3" id="blocoParcelas" style="display: none;">
+                <label class="form-label small fw-bold text-dark">📊 Parcelamento</label>
+                <select id="selectParcelas" class="form-select border-secondary shadow-sm">
+                    <option value="1">1x (À vista)</option>
+                    <option value="2">2x</option>
+                    <option value="3">3x</option>
+                    <option value="4">4x</option>
+                    <option value="5">5x</option>
+                    <option value="6">6x</option>
+                    <option value="7">7x</option>
+                    <option value="8">8x</option>
+                    <option value="9">9x</option>
+                    <option value="10">10x</option>
+                    <option value="11">11x</option>
+                    <option value="12">12x</option>
+                </select>
             </div>
 
             <div class="row g-2 mb-4">
@@ -130,8 +173,180 @@
     </div>
 </div>
 
+<!-- MODAL DE SANGRIA (RETIRADA SEGURA) -->
+<div class="modal fade" id="modalSangria" tabindex="-1" aria-labelledby="modalSangriaLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold" id="modalSangriaLabel"><i class="fas fa-hand-holding-usd me-1"></i> Retirada de Caixa (Sangria)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="/painelpdv/sangria/">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted small">Requer dupla validação de credenciais para registro na trilha de auditoria.</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Valor da Retirada (R$)</label>
+                        <input type="text" class="form-control form-control-lg text-danger fw-bold input-mascara-moeda" name="valor_sangria" placeholder="R$ 0,00" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Motivo da Retirada</label>
+                        <input type="text" class="form-control" name="motivo_sangria" placeholder="Ex: Sangria periódica para cofre" required>
+                    </div>
+
+                    <div class="border rounded p-3 bg-light mt-3">
+                        <h6 class="small text-danger fw-bold mb-2">Dupla Validação de Acesso</h6>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="small text-muted">Admin (Usuário)</label>
+                                <input type="text" class="form-control form-control-sm" name="admin_user" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-muted">Admin (Senha)</label>
+                                <input type="password" class="form-control form-control-sm" name="admin_pass" required>
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="small text-muted">Operador (Usuário)</label>
+                                <input type="text" class="form-control form-control-sm" name="op_user" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-muted">Operador (Senha)</label>
+                                <input type="password" class="form-control form-control-sm" name="op_pass" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning fw-bold">Confirmar Retirada</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE FECHAMENTO DE CAIXA -->
+<div class="modal fade" id="modalFecharCaixa" tabindex="-1" aria-labelledby="modalFecharCaixaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold" id="modalFecharCaixaLabel"><i class="fas fa-file-invoice-dollar me-1"></i> Fechamento de Turno e Gaveta</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="/painelpdv/fechamento/">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted small">Confira os valores agregados calculados pelo sistema e insira a contagem física do lastro.</p>
+                    
+                    <div class="row g-3 mb-3 text-center">
+                        <div class="col-md-3 col-6">
+                            <div class="p-2 border rounded bg-light">
+                                <span class="d-block small text-muted">Fundo Inicial</span>
+                                <strong class="text-dark">{{ caixa.fundo_inicial|default:"R$ 0,00" }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="p-2 border rounded bg-light">
+                                <span class="d-block small text-muted">Total Dinheiro</span>
+                                <strong class="text-success">{{ caixa.total_dinheiro|default:"R$ 0,00" }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="p-2 border rounded bg-light">
+                                <span class="d-block small text-muted">Total PIX/Cartões</span>
+                                <strong class="text-primary">{{ caixa.total_digital|default:"R$ 0,00" }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="p-2 border rounded bg-light">
+                                <span class="d-block small text-muted">Total Sangrias</span>
+                                <strong class="text-danger">{{ caixa.total_sangrias|default:"R$ 0,00" }}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Contagem Física da Gaveta (Dinheiro Real Encontrado)</label>
+                        <input type="text" class="form-control form-control-lg text-primary fw-bold input-mascara-moeda" name="valor_contagem_fisica" placeholder="R$ 0,00" required>
+                    </div>
+
+                    <div class="border rounded p-3 bg-light mt-3">
+                        <h6 class="small text-danger fw-bold mb-2">Autorização do Administrador</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="small text-muted">Usuário Admin</label>
+                                <input type="text" class="form-control form-control-sm" name="admin_user_fechamento" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-muted">Senha Admin</label>
+                                <input type="password" class="form-control form-control-sm" name="admin_pass_fechamento" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button>
+                    <button type="submit" class="btn btn-danger fw-bold">Encerrar Caixa e Imprimir Resumo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     const csrfTokenConfig = '{{ csrf_token }}';
+
+    // Controle dinâmico da forma de pagamento
+    function tratarMudancaPagamento() {
+        const metodo = document.getElementById('formaPagamento').value;
+        const blocoParcelas = document.getElementById('blocoParcelas');
+        const inputRecebido = document.getElementById('inputValorRecebido');
+        const inputFinal = document.getElementById('inputValorFinal');
+        const valorFinal = parseFloat(inputFinal ? inputFinal.value : 0) || 0;
+
+        if (metodo === 'CREDITO') {
+            blocoParcelas.style.display = 'block';
+            if (inputRecebido && valorFinal > 0) {
+                inputRecebido.value = valorFinal.toFixed(2);
+                if (typeof calcularTroco === 'function') calcularTroco();
+            }
+        } else if (metodo === 'PIX' || metodo === 'DEBITO') {
+            blocoParcelas.style.display = 'none';
+            if (inputRecebido && valorFinal > 0) {
+                inputRecebido.value = valorFinal.toFixed(2);
+                if (typeof calcularTroco === 'function') calcularTroco();
+            }
+        } else {
+            // Dinheiro
+            blocoParcelas.style.display = 'none';
+            if (inputRecebido) {
+                inputRecebido.value = '';
+                if (typeof calcularTroco === 'function') calcularTroco();
+            }
+        }
+    }
+
+    // Sincroniza o valor recebido caso o operador altere o valor final ou desconto
+    function sincronizarPagamentoAutomatico() {
+        const metodo = document.getElementById('formaPagamento').value;
+        if (metodo !== 'DINHEIRO') {
+            tratarMudancaPagamento();
+        }
+    }
+
+    // Máscara monetária para os modais de caixa
+    document.querySelectorAll('.input-mascara-moeda').forEach(function(input) {
+        input.addEventListener('input', function(e) {
+            let val = e.target.value.replace(/\D/g, '');
+            val = (val / 100).toFixed(2) + '';
+            val = val.replace(".", ",");
+            val = val.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+            e.target.value = val ? 'R$ ' + val : '';
+        });
+    });
 </script>
 <!-- Atualizado para v=2.4 -->
 <script src="{% static 'js/pdv.js' %}?v=2.4"></script>

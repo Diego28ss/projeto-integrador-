@@ -1,0 +1,72 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-danger text-white text-center">
+                    <h4 class="mb-0"><i class="fas fa-cash-register"></i> Abertura de Caixa</h4>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-muted text-center mb-4">Autorize e informe o lastro inicial para iniciar as vendas.</p>
+                    
+                    <form id="formAberturaCaixa" method="POST" action="{% url 'abrir_caixa' %}">
+                        {% csrf_token %}
+                        
+                        <!-- Autenticação do Administrador -->
+                        <h6 class="text-danger border-bottom pb-2 mb-3">1. Autorização do Gerente</h6>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Usuário (Admin)</label>
+                                <input type="text" class="form-control" name="admin_user" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Senha</label>
+                                <input type="password" class="form-control" name="admin_pass" required>
+                            </div>
+                        </div>
+
+                        <!-- Autenticação do Operador (Caixa) -->
+                        <h6 class="text-danger border-bottom pb-2 mb-3 mt-4">2. Dados do Operador</h6>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Usuário (Caixa)</label>
+                                <input type="text" class="form-control" name="colaborador_user" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Senha</label>
+                                <input type="password" class="form-control" name="colaborador_pass" required>
+                            </div>
+                        </div>
+
+                        <!-- Fundo de Troco -->
+                        <h6 class="text-danger border-bottom pb-2 mb-3 mt-4">3. Fundo de Troco Inicial</h6>
+                        <div class="mb-4">
+                            <label class="form-label">Valor Físico na Gaveta (R$)</label>
+                            <input type="text" class="form-control form-control-lg text-success fw-bold" id="fundoInicial" name="fundo_inicial" placeholder="R$ 0,00" required>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-lock-open"></i> Confirmar e Abrir Caixa
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script rápido para formatar o campo de dinheiro como você já sabe fazer -->
+<script>
+    document.getElementById('fundoInicial').addEventListener('input', function (e) {
+        let value = e.target.value.replace(/\D/g, '');
+        value = (value / 100).toFixed(2) + '';
+        value = value.replace(".", ",");
+        value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+        e.target.value = 'R$ ' + value;
+    });
+</script>
+{% endblock %}

@@ -3,3 +3,4 @@ from .clientes.cliente_models import Clientes
 from .produtos.produto_models import Produtos, Marca, Familia
 from .usuarios.usuario_models import Usuarios
 from .vendas.venda_models import Vendas, ConfiguracaoPontos
+from .vendas.caixa_models import CaixaDiario, SangriaCaixa

@@ -12,11 +12,11 @@ def autenticar_dupla_credencial(login_admin, senha_admin, login_colaborador, sen
     Retorna uma tupla (sucesso, mensagem, admin_obj, colab_obj).
     """
     try:
-        admin = Usuarios.objects.get(login=login_admin, senha=senha_admin)
-        if admin.perfil != 'Administrador':
+        admin = Usuarios.objects.get(login__iexact=str(login_admin).strip(), senha=str(senha_admin).strip())
+        if admin.perfil.strip().lower() != 'administrador':
             return False, "O usuário autorizador não possui perfil de Administrador.", None, None
             
-        colab = Usuarios.objects.get(login=login_colaborador, senha=senha_colaborador)
+        colab = Usuarios.objects.get(login__iexact=str(login_colaborador).strip(), senha=str(senha_colaborador).strip())
         return True, "Credenciais validadas com sucesso.", admin, colab
         
     except Usuarios.DoesNotExist:

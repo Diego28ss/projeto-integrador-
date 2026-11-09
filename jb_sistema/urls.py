@@ -93,4 +93,10 @@ urlpatterns = [
     path('gerencia/colaboradores/excluir/<int:id>/', config_views.excluir_colaborador, name='excluir_colaborador'),
     path('gerencia/pontos/', config_views.tela_manutencao_pontos, name='tela_manutencao_pontos'),
     path('gerencia/pontos/salvar/', config_views.salvar_configuracao_pontos, name='salvar_configuracao_pontos'),
+    # 💰 Gestão de Caixa e PDV (Fase 2)
+    path('painelpdv/', pdv_views.tela_painel_pdv, name='tela_painel_pdv'),
+    path('painelpdv/abertura/', pdv_views.tela_abertura_caixa, name='tela_abertura_caixa'),
+    path('painelpdv/abrir/', pdv_views.abrir_caixa_view, name='abrir_caixa'),
+    path('painelpdv/sangria/', pdv_views.realizar_sangria, name='realizar_sangria'),
+    path('painelpdv/fechamento/', pdv_views.fechar_caixa_view, name='fechar_caixa'),
 ]

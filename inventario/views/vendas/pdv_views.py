@@ -1,3 +1,8 @@
+from decimal import Decimal
+from django.contrib import messages
+from inventario.models.vendas.caixa_models import CaixaDiario, SangriaCaixa
+from inventario.services.vendas import caixa_services
+
 import json
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
@@ -12,6 +17,12 @@ def tela_pdv(request):
     if 'usuario_logado' not in request.session:
         return redirect('login')
 
+    caixa = CaixaDiario.objects.filter(status='ABERTO').last()
+    if not caixa:
+        return redirect('tela_painel_pdv')
+
+    caixa.total_digital = (caixa.total_pix or Decimal('0.00')) + (caixa.total_debito or Decimal('0.00')) + (caixa.total_credito or Decimal('0.00'))
+
     produtos = Produtos.objects.exclude(status='INATIVO')
     vendedores = Usuarios.objects.all()
     clientes = Clientes.objects.all()
@@ -22,6 +33,7 @@ def tela_pdv(request):
         'vendedores_list': vendedores,
         'clientes': clientes,
         'pintores': clientes.filter(tipo__icontains='PINTOR'),
+        'caixa': caixa,
     }
     return render(request, 'inventario/pdv.html', context)
 
@@ -87,3 +99,132 @@ def api_salvar_venda(request):
             return JsonResponse({'status': 'erro', 'mensagem': f'Erro interno: {str(e)}'})
             
     return JsonResponse({'status': 'erro', 'mensagem': 'Método inválido.'})
+
+
+def _converter_moeda(valor_str):
+    if not valor_str:
+        return Decimal('0.00')
+    limpo = str(valor_str).replace('R$', '').replace(' ', '').replace('.', '').replace(',', '.')
+    try:
+        return Decimal(limpo)
+    except:
+        return Decimal('0.00')
+
+def tela_painel_pdv(request):
+    if 'usuario_logado' not in request.session:
+        return redirect('login')
+
+    caixa = CaixaDiario.objects.filter(status='ABERTO').last()
+    if caixa:
+        caixa.total_digital = (caixa.total_pix or Decimal('0.00')) + (caixa.total_debito or Decimal('0.00')) + (caixa.total_credito or Decimal('0.00'))
+
+    context = {
+        'caixa_aberto': bool(caixa),
+        'caixa': caixa,
+    }
+    return render(request, 'inventario/painel_pdv.html', context)
+
+def tela_abertura_caixa(request):
+    if 'usuario_logado' not in request.session:
+        return redirect('login')
+
+    caixa = CaixaDiario.objects.filter(status='ABERTO').last()
+    if caixa:
+        return redirect('tela_pdv')
+
+    return render(request, 'inventario/abertura_caixa.html')
+
+def abrir_caixa_view(request):
+    if request.method != 'POST':
+        return redirect('tela_abertura_caixa')
+
+    admin_user = request.POST.get('admin_user', '').strip()
+    admin_pass = request.POST.get('admin_pass', '').strip()
+    colab_user = request.POST.get('colaborador_user', '').strip()
+    colab_pass = request.POST.get('colaborador_pass', '').strip()
+    fundo_inicial_str = request.POST.get('fundo_inicial', '0')
+
+    valido, msg, admin_obj, colab_obj = caixa_services.autenticar_dupla_credencial(
+        admin_user, admin_pass, colab_user, colab_pass
+    )
+
+    if not valido:
+        messages.error(request, msg)
+        return redirect('tela_abertura_caixa')
+
+    fundo_decimal = _converter_moeda(fundo_inicial_str)
+    sucesso, msg_caixa = caixa_services.abrir_caixa(admin_obj, colab_obj, fundo_decimal)
+
+    if not sucesso:
+        messages.error(request, msg_caixa)
+        return redirect('tela_abertura_caixa')
+
+    messages.success(request, msg_caixa)
+    return redirect('tela_pdv')
+
+def realizar_sangria(request):
+    if request.method != 'POST':
+        return redirect('tela_pdv')
+
+    valor_str = request.POST.get('valor_sangria', '0')
+    motivo = request.POST.get('motivo_sangria', '').strip()
+    admin_user = request.POST.get('admin_user', '').strip()
+    admin_pass = request.POST.get('admin_pass', '').strip()
+    op_user = request.POST.get('op_user', '').strip()
+    op_pass = request.POST.get('op_pass', '').strip()
+
+    valido, msg, admin_obj, colab_obj = caixa_services.autenticar_dupla_credencial(
+        admin_user, admin_pass, op_user, op_pass
+    )
+
+    if not valido:
+        messages.error(request, f'Falha na autorização: {msg}')
+        return redirect('tela_pdv')
+
+    caixa = CaixaDiario.objects.filter(status='ABERTO').last()
+    if not caixa:
+        messages.error(request, 'Nenhum caixa aberto para realizar sangria.')
+        return redirect('tela_painel_pdv')
+
+    valor_decimal = _converter_moeda(valor_str)
+    sucesso, msg_sangria = caixa_services.registrar_sangria(caixa, admin_obj, valor_decimal, motivo)
+
+    if sucesso:
+        messages.success(request, msg_sangria)
+    else:
+        messages.error(request, msg_sangria)
+
+    return redirect('tela_pdv')
+
+def fechar_caixa_view(request):
+    if request.method != 'POST':
+        return redirect('tela_pdv')
+
+    valor_contagem_str = request.POST.get('valor_contagem_fisica', '0')
+    admin_user = request.POST.get('admin_user_fechamento', '').strip()
+    admin_pass = request.POST.get('admin_pass_fechamento', '').strip()
+
+    try:
+        admin_obj = Usuarios.objects.get(login=admin_user, senha=admin_pass)
+        if admin_obj.perfil != 'Administrador':
+            messages.error(request, 'O usuário autorizador não possui perfil de Administrador.')
+            return redirect('tela_pdv')
+    except Usuarios.DoesNotExist:
+        messages.error(request, 'Credenciais de Administrador inválidas para fechamento.')
+        return redirect('tela_pdv')
+
+    caixa = CaixaDiario.objects.filter(status='ABERTO').last()
+    if not caixa:
+        messages.error(request, 'Nenhum caixa aberto para fechamento.')
+        return redirect('tela_painel_pdv')
+
+    valor_contagem_decimal = _converter_moeda(valor_contagem_str)
+    sucesso, diferenca, esperado = caixa_services.fechar_caixa(caixa, valor_contagem_decimal)
+
+    if sucesso:
+        status_dif = 'Sem divergências' if diferenca == 0 else f'Diferença em dinheiro: R$ {diferenca:.2f}'
+        messages.success(request, f'Caixa fechado com sucesso! Total esperado em dinheiro: R$ {esperado:.2f}. {status_dif}')
+    else:
+        messages.error(request, 'Erro ao fechar o caixa.')
+
+    return redirect('tela_painel_pdv')

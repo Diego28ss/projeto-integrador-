@@ -72,20 +72,28 @@ def api_salvar_venda(request):
             carrinho = dados.get('carrinho', [])
             status_venda = dados.get('status', 'VENDA')
             
+            # NOVO: Pega o operador da sessão de forma blindada, ignorando o JavaScript!
+            operador_oficial = request.session.get('operador_caixa')
+            if not operador_oficial:
+                # Fallback de segurança buscando o último caixa aberto direto do banco de dados
+                caixa = CaixaDiario.objects.filter(status='ABERTO').last()
+                operador_oficial = caixa.operador.login if caixa else dados.get('vendedor', '')
+
             dados_venda = {
                 'valor_total': dados.get('valor_final', 0),
                 'valor_desconto': dados.get('desconto', 0),
-                'vendedor': dados.get('vendedor', ''),
+                'vendedor': operador_oficial, # <--- SUBSTITUÍDO: Força o nome correto na venda
                 'cliente_id': dados.get('cliente_id'),
                 'indicante_id': dados.get('indicante_id'),
-                'cupom_texto': json.dumps(carrinho)
+                'cupom_texto': json.dumps(carrinho),
+                # NOVO: Preparando a recepção da forma de pagamento para a Fase 4 do caixa
+                'forma_pagamento': dados.get('forma_pagamento', 'DINHEIRO') 
             }
 
             venda_id = pdv_services.processar_nova_venda(
                 dados_venda=dados_venda,
                 carrinho=carrinho,
                 status_venda=status_venda,
-                # ATUALIZAÇÃO: Mudamos de int() para float() para aceitar os centavos perfeitamente!
                 pontos_resgatados=float(dados.get('pontos_resgatados', 0.0)),
                 valor_desconto_pontos=float(dados.get('valor_desconto_pontos', 0.0))
             )
@@ -159,8 +167,12 @@ def abrir_caixa_view(request):
         messages.error(request, msg_caixa)
         return redirect('tela_abertura_caixa')
 
+    # NOVO: Guarda na sessão do navegador quem é o operador oficial da gaveta
+    request.session['operador_caixa'] = colab_obj.login
+
     messages.success(request, msg_caixa)
     return redirect('tela_pdv')
+
 
 def realizar_sangria(request):
     if request.method != 'POST':
@@ -222,6 +234,9 @@ def fechar_caixa_view(request):
     sucesso, diferenca, esperado = caixa_services.fechar_caixa(caixa, valor_contagem_decimal)
 
     if sucesso:
+        # NOVO: Limpa a sessão quando a gaveta é fechada
+        request.session.pop('operador_caixa', None) 
+        
         status_dif = 'Sem divergências' if diferenca == 0 else f'Diferença em dinheiro: R$ {diferenca:.2f}'
         messages.success(request, f'Caixa fechado com sucesso! Total esperado em dinheiro: R$ {esperado:.2f}. {status_dif}')
     else:
